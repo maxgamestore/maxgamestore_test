@@ -1,1 +1,184 @@
 
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Of Fights - Login</title>
+    <link rel="icon" href="../assets/favicon.png">
+    <link rel="stylesheet" href="login.css">
+</head>
+<body>
+
+    <!-- ============================================================
+         STAGE 1: LOGIN (split 40/60)
+         ============================================================ -->
+    <div id="stage-login" class="stage active">
+        <div class="login-container">
+
+            <!-- STÂNGA: FORM (40%) -->
+            <div class="login-form-side">
+                <div class="login-form-wrapper">
+                    <div class="logo">
+                        <span class="logo-icon">⚔️</span>
+                        <h1 class="logo-text">WORLD OF FIGHTS</h1>
+                    </div>
+
+                    <form id="login-form" autocomplete="off">
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" id="login-username" required minlength="3" maxlength="24" placeholder="username">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" id="login-password" required minlength="8" placeholder="••••••••">
+                        </div>
+
+                        <div class="form-error" id="login-error"></div>
+
+                        <button type="submit" class="btn-primary" id="login-btn">
+                            LOGIN
+                        </button>
+
+                        <p class="form-switch">
+                            Nu ai cont?
+                            <a href="#" id="switch-register">Creează unul</a>
+                        </p>
+                    </form>
+                </div>
+            </div>
+
+            <!-- SEPARATOR OBLIC -->
+            <div class="divider"></div>
+
+            <!-- DREAPTA: IMAGINI (60%) -->
+            <div class="login-image-side" id="login-image-side">
+                <!-- Imaginile se încarcă din JS -->
+                <div class="image-overlay"></div>
+            </div>
+
+        </div>
+
+        <!-- ANIMAȚIE 1 (se activează la click LOGIN) -->
+        <div id="anim1" class="anim1 hidden">
+            <div class="anim1-bar" id="anim1-bar"></div>
+            <div class="anim1-text" id="anim1-user">username</div>
+            <div class="anim1-text" id="anim1-pass">password</div>
+        </div>
+
+    </div>
+
+    <!-- ============================================================
+         STAGE 2: VERIFY (OTP)
+         ============================================================ -->
+    <div id="stage-verify" class="stage">
+        <div class="verify-container">
+
+            <!-- IMAGINE CARE SE MIȘCĂ -->
+            <div class="verify-bg" id="verify-bg"></div>
+
+            <!-- CARD OTP -->
+            <div class="otp-card">
+                <div class="otp-header">
+                    <span class="otp-icon">📧</span>
+                    <h2>VERIFICĂ EMAIL-UL</h2>
+                </div>
+
+                <p class="otp-message">
+                    Am trimis un cod de 6 cifre la:<br>
+                    <strong id="otp-email">user@example.com</strong>
+                </p>
+
+                <div class="otp-inputs" id="otp-inputs">
+                    <input type="text" maxlength="1" class="otp-digit" data-index="0" inputmode="numeric">
+                    <input type="text" maxlength="1" class="otp-digit" data-index="1" inputmode="numeric">
+                    <input type="text" maxlength="1" class="otp-digit" data-index="2" inputmode="numeric">
+                    <input type="text" maxlength="1" class="otp-digit" data-index="3" inputmode="numeric">
+                    <input type="text" maxlength="1" class="otp-digit" data-index="4" inputmode="numeric">
+                    <input type="text" maxlength="1" class="otp-digit" data-index="5" inputmode="numeric">
+                </div>
+
+                <div class="form-error" id="otp-error"></div>
+
+                <button type="button" class="btn-primary" id="otp-verify-btn">
+                    VERIFY
+                </button>
+
+                <p class="otp-resend">
+                    Nu ai primit codul?
+                    <a href="#" id="otp-resend">Retrimite</a>
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ============================================================
+         STAGE 3: INTRO (ANIMAȚIA 2 - ELECTRICITATE)
+         ============================================================ -->
+    <div id="stage-intro" class="stage">
+        <div class="intro-container">
+
+            <!-- PARTICULE / ELECTRICITATE -->
+            <div class="intro-electricity" id="intro-electricity">
+                <div class="lightning" id="lightning-1"></div>
+                <div class="lightning" id="lightning-2"></div>
+                <div class="lightning" id="lightning-3"></div>
+            </div>
+
+            <!-- EXPLOZIE -->
+            <div class="intro-explosion" id="intro-explosion"></div>
+
+            <!-- VORTEX (GAURA NEAGRĂ) -->
+            <div class="intro-vortex" id="intro-vortex"></div>
+
+            <!-- TEXT MAXGAMESTORE -->
+            <div class="intro-text" id="intro-text">
+                <h1>MAXGAMESTORE</h1>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ============================================================
+         STAGE 4: MAIN (UI BAR)
+         ============================================================ -->
+    <div id="stage-main" class="stage">
+        <div class="main-container">
+
+            <!-- UI BAR SUS -->
+            <div class="main-bar">
+                <div class="main-bar-left">
+                    <span class="user-icon">👤</span>
+                    <span class="user-name" id="main-username">Player</span>
+                </div>
+                <div class="main-bar-right">
+                    <a href="#" class="menu-link">Shop</a>
+                    <a href="#" class="menu-link">Info</a>
+                    <a href="#" class="menu-link">Games</a>
+                </div>
+            </div>
+
+            <!-- CONȚINUT GOL MOMENTAN -->
+            <div class="main-content">
+                <p class="placeholder-text">Conținut în curând...</p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ============================================================
+         AUDIO ELEMENTS
+         ============================================================ -->
+    <audio id="sfx-click" src="../assets/sounds/click.mp3" preload="auto"></audio>
+    <audio id="sfx-electric" src="../assets/sounds/electric_short.mp3" preload="auto"></audio>
+    <audio id="sfx-explosion" src="../assets/sounds/explosion.mp3" preload="auto"></audio>
+    <audio id="sfx-vortex" src="../assets/sounds/vortex.mp3" preload="auto"></audio>
+    <audio id="sfx-electric-long" src="../assets/sounds/electric_long.mp3" preload="auto"></audio>
+    <audio id="sfx-whoosh" src="../assets/sounds/whoosh.mp3" preload="auto"></audio>
+    <audio id="sfx-error" src="../assets/sounds/error.mp3" preload="auto"></audio>
+
+    <script src="login.js"></script>
+</body>
+</html>
