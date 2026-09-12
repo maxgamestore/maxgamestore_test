@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ro">
 <head>
@@ -54,7 +53,6 @@
 
             <!-- DREAPTA: IMAGINI (60%) -->
             <div class="login-image-side" id="login-image-side">
-                <!-- Imaginile se încarcă din JS -->
                 <div class="image-overlay"></div>
             </div>
 
@@ -65,6 +63,7 @@
             <div class="anim1-bar" id="anim1-bar"></div>
             <div class="anim1-text" id="anim1-user">username</div>
             <div class="anim1-text" id="anim1-pass">password</div>
+            <div class="anim1-ui-burst" id="anim1-ui-burst"></div>
         </div>
 
     </div>
@@ -120,14 +119,19 @@
     <div id="stage-intro" class="stage">
         <div class="intro-container">
 
-            <!-- PARTICULE / ELECTRICITATE -->
+            <!-- ELECTRICITATE DETALIATĂ (8 fulgere) -->
             <div class="intro-electricity" id="intro-electricity">
                 <div class="lightning" id="lightning-1"></div>
                 <div class="lightning" id="lightning-2"></div>
                 <div class="lightning" id="lightning-3"></div>
+                <div class="lightning" id="lightning-4"></div>
+                <div class="lightning" id="lightning-5"></div>
+                <div class="lightning" id="lightning-6"></div>
+                <div class="lightning" id="lightning-7"></div>
+                <div class="lightning" id="lightning-8"></div>
             </div>
 
-            <!-- EXPLOZIE -->
+            <!-- EXPLOZIE MARE -->
             <div class="intro-explosion" id="intro-explosion"></div>
 
             <!-- VORTEX (GAURA NEAGRĂ) -->
@@ -147,11 +151,11 @@
     <div id="stage-main" class="stage">
         <div class="main-container">
 
-            <!-- UI BAR SUS -->
             <div class="main-bar">
                 <div class="main-bar-left">
                     <span class="user-icon">👤</span>
                     <span class="user-name" id="main-username">Player</span>
+                    <span class="user-luna">💰 <span id="main-luna">100</span></span>
                 </div>
                 <div class="main-bar-right">
                     <a href="#" class="menu-link">Shop</a>
@@ -160,7 +164,6 @@
                 </div>
             </div>
 
-            <!-- CONȚINUT GOL MOMENTAN -->
             <div class="main-content">
                 <p class="placeholder-text">Conținut în curând...</p>
             </div>
