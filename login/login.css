@@ -1,4 +1,3 @@
-
 /* ============================================================
    RESET + VARIABILE
    ============================================================ */
@@ -25,7 +24,6 @@
     --error-glow: rgba(255, 0, 68, 0.6);
     --purple: #6a0dad;
     --transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-slow: 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 html, body {
@@ -42,7 +40,7 @@ html, body {
 }
 
 /* ============================================================
-   STAGES (ECRANE)
+   STAGES
    ============================================================ */
 .stage {
     position: fixed;
@@ -60,7 +58,7 @@ html, body {
 }
 
 /* ============================================================
-   STAGE 1: LOGIN (SPLIT 40/60)
+   STAGE 1: LOGIN
    ============================================================ */
 .login-container {
     width: 100%;
@@ -70,7 +68,7 @@ html, body {
     overflow: hidden;
 }
 
-/* STÂNGA - FORM (40%) */
+/* STÂNGA - FORM */
 .login-form-side {
     width: 40%;
     height: 100%;
@@ -211,14 +209,13 @@ html, body {
     box-shadow: 0 0 20px var(--accent-glow);
 }
 
-/* DREAPTA - IMAGINI (60%) */
+/* DREAPTA - IMAGINI */
 .login-image-side {
     width: 60%;
     height: 100%;
     position: relative;
     overflow: hidden;
     background: var(--purple);
-    /* FADE PE MARGINI */
     -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
     mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
 }
@@ -243,10 +240,11 @@ html, body {
     inset: 0;
     background: linear-gradient(135deg, rgba(10,10,15,0.4) 0%, transparent 50%, rgba(10,10,15,0.4) 100%);
     pointer-events: none;
+    z-index: 2;
 }
 
 /* ============================================================
-   ANIMAȚIA 1 (bară + rotire)
+   ANIMAȚIA 1
    ============================================================ */
 .anim1 {
     position: fixed;
@@ -259,6 +257,7 @@ html, body {
     overflow: hidden;
 }
 
+/* BARA - se duce COMPLET în afara ecranului */
 .anim1-bar {
     position: absolute;
     left: 40%;
@@ -269,23 +268,28 @@ html, body {
     transform: rotate(5deg);
     transform-origin: center;
     box-shadow: 0 0 30px var(--accent);
-    transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: 
+        left 0.7s cubic-bezier(0.4, 0, 0.2, 1), 
+        transform 0.7s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.3s 0.5s;
 }
 
 .anim1-bar.move-right {
-    left: 100%;
+    left: 110vw;
     transform: rotate(5deg) scaleY(1.2);
+    opacity: 0;
 }
 
+/* TEXT USER + PAROLĂ */
 .anim1-text {
     position: absolute;
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 800;
     color: var(--accent);
     letter-spacing: 4px;
     opacity: 0;
-    transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
     text-shadow: 0 0 20px var(--accent-glow);
+    z-index: 5;
 }
 
 #anim1-user {
@@ -300,24 +304,95 @@ html, body {
     transform: translate(-50%, -50%);
 }
 
+/* Animație: user și parolă merg spre centru, se rotesc, devin mici */
 .anim1-text.spinning {
     opacity: 1;
-    animation: spin-circle 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-@keyframes spin-circle {
+#anim1-user.spinning {
+    animation: user-merge 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+#anim1-pass.spinning {
+    animation: pass-merge 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes user-merge {
     0% {
-        transform: translate(-50%, -50%) rotate(0deg) scale(1);
+        top: 45%;
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+    40% {
+        top: 48%;
+        transform: translate(-50%, -50%) scale(0.8) rotate(360deg);
         opacity: 1;
     }
     100% {
-        transform: translate(-50%, -50%) rotate(720deg) scale(0);
+        top: 50%;
+        transform: translate(-50%, -50%) scale(0) rotate(900deg);
+        opacity: 0;
+    }
+}
+
+@keyframes pass-merge {
+    0% {
+        top: 55%;
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+    40% {
+        top: 52%;
+        transform: translate(-50%, -50%) scale(0.8) rotate(-360deg);
+        opacity: 1;
+    }
+    100% {
+        top: 50%;
+        transform: translate(-50%, -50%) scale(0) rotate(-900deg);
+        opacity: 0;
+    }
+}
+
+/* UI BURST (explozie din centru după animație) */
+.anim1-ui-burst {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid var(--accent);
+    background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+    transform: translate(-50%, -50%) scale(0);
+    box-shadow: 
+        0 0 30px var(--accent),
+        0 0 60px var(--accent-glow),
+        inset 0 0 20px var(--accent);
+    opacity: 0;
+    z-index: 6;
+}
+
+.anim1-ui-burst.active {
+    animation: ui-burst 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes ui-burst {
+    0% {
+        transform: translate(-50%, -50%) scale(0) rotate(0deg);
+        opacity: 0;
+    }
+    40% {
+        transform: translate(-50%, -50%) scale(2) rotate(180deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(8) rotate(720deg);
         opacity: 0;
     }
 }
 
 /* ============================================================
-   STAGE 2: VERIFY (OTP)
+   STAGE 2: VERIFY
    ============================================================ */
 .verify-container {
     width: 100%;
@@ -449,18 +524,30 @@ html, body {
     position: relative;
     background: #000;
     overflow: hidden;
+    perspective: 1000px;
 }
 
-/* ELECTRICITATE */
+/* FADE OUT BACKGROUND */
+.intro-container.fade-out-bg {
+    animation: fade-out-bg 0.6s ease-out forwards;
+}
+
+@keyframes fade-out-bg {
+    0% { opacity: 1; }
+    100% { opacity: 0.3; }
+}
+
+/* ELECTRICITATE DETALIATĂ */
 .intro-electricity {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 400px;
-    height: 400px;
+    width: 600px;
+    height: 600px;
     opacity: 0;
-    transition: opacity 0.5s;
+    transition: opacity 0.3s;
+    z-index: 5;
 }
 
 .intro-electricity.active {
@@ -471,88 +558,204 @@ html, body {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 4px;
-    height: 200px;
-    background: var(--success);
-    box-shadow: 0 0 20px var(--success), 0 0 40px var(--success);
-    transform-origin: center;
-    animation: lightning-flash 0.3s infinite;
+    width: 3px;
+    height: 150px;
+    background: linear-gradient(
+        180deg,
+        transparent 0%,
+        var(--success) 20%,
+        #ffffff 50%,
+        var(--success) 80%,
+        transparent 100%
+    );
+    box-shadow: 
+        0 0 10px var(--success),
+        0 0 20px var(--success),
+        0 0 40px var(--success),
+        0 0 80px var(--success-glow);
+    transform-origin: center bottom;
+    animation: lightning-flicker 0.15s infinite;
+    filter: blur(0.5px);
 }
 
-#lightning-1 {
-    transform: translate(-50%, -100%) rotate(15deg);
-    animation-delay: 0s;
+.lightning::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent, #ffffff, transparent);
+    filter: blur(2px);
+    opacity: 0.7;
 }
 
-#lightning-2 {
-    transform: translate(-50%, -100%) rotate(-25deg);
-    animation-delay: 0.1s;
-}
+#lightning-1 { transform: translate(-50%, -100%) rotate(15deg) scaleY(1.0); animation-delay: 0s; }
+#lightning-2 { transform: translate(-50%, -100%) rotate(-25deg) scaleY(1.2); animation-delay: 0.05s; }
+#lightning-3 { transform: translate(-50%, -100%) rotate(45deg) scaleY(0.9); animation-delay: 0.1s; }
+#lightning-4 { transform: translate(-50%, -100%) rotate(-60deg) scaleY(1.1); animation-delay: 0.15s; }
+#lightning-5 { transform: translate(-50%, -100%) rotate(80deg) scaleY(1.0); animation-delay: 0.2s; }
+#lightning-6 { transform: translate(-50%, -100%) rotate(-100deg) scaleY(1.3); animation-delay: 0.25s; }
+#lightning-7 { transform: translate(-50%, -100%) rotate(120deg) scaleY(0.8); animation-delay: 0.3s; }
+#lightning-8 { transform: translate(-50%, -100%) rotate(-140deg) scaleY(1.1); animation-delay: 0.35s; }
 
-#lightning-3 {
-    transform: translate(-50%, -100%) rotate(45deg);
-    animation-delay: 0.2s;
-}
-
-@keyframes lightning-flash {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
+@keyframes lightning-flicker {
+    0%, 100% { 
+        opacity: 1; 
+        filter: blur(0.5px) brightness(1); 
+    }
+    25% { 
+        opacity: 0.6; 
+        filter: blur(0.5px) brightness(1.5); 
+    }
+    50% { 
+        opacity: 1; 
+        filter: blur(0.5px) brightness(2); 
+    }
+    75% { 
+        opacity: 0.4; 
+        filter: blur(0.5px) brightness(1.2); 
+    }
 }
 
 .intro-electricity.red .lightning {
-    background: var(--error);
-    box-shadow: 0 0 20px var(--error), 0 0 40px var(--error);
+    background: linear-gradient(
+        180deg,
+        transparent 0%,
+        var(--error) 20%,
+        #ff5577 50%,
+        var(--error) 80%,
+        transparent 100%
+    );
+    box-shadow: 
+        0 0 10px var(--error),
+        0 0 20px var(--error),
+        0 0 40px var(--error),
+        0 0 80px var(--error-glow);
 }
 
-/* EXPLOZIE */
+/* EXPLOZIE MARE */
 .intro-explosion {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) scale(0);
-    width: 100px;
-    height: 100px;
+    width: 200px;
+    height: 200px;
     border-radius: 50%;
-    background: radial-gradient(circle, var(--success) 0%, transparent 70%);
+    background: radial-gradient(
+        circle,
+        #ffffff 0%,
+        var(--success) 20%,
+        var(--success-glow) 50%,
+        transparent 80%
+    );
     opacity: 0;
+    z-index: 10;
+    filter: blur(2px);
 }
 
 .intro-explosion.active {
-    animation: explode 0.8s ease-out forwards;
+    animation: explode-big 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes explode-big {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+        filter: blur(0px);
+    }
+    20% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+        filter: blur(0px);
+    }
+    60% {
+        transform: translate(-50%, -50%) scale(15);
+        opacity: 0.8;
+        filter: blur(5px);
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(30);
+        opacity: 0;
+        filter: blur(20px);
+    }
 }
 
 .intro-explosion.red {
-    background: radial-gradient(circle, var(--error) 0%, transparent 70%);
-}
-
-@keyframes explode {
-    0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
-    100% { transform: translate(-50%, -50%) scale(15); opacity: 0; }
+    background: radial-gradient(
+        circle,
+        #ffffff 0%,
+        var(--error) 20%,
+        var(--error-glow) 50%,
+        transparent 80%
+    );
 }
 
 /* VORTEX */
 .intro-vortex {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    width: 100px;
-    height: 100px;
+    width: 150px;
+    height: 150px;
     border-radius: 50%;
-    background: radial-gradient(circle, #000 0%, var(--success) 30%, transparent 70%);
-    box-shadow: 0 0 60px var(--success), inset 0 0 40px var(--success);
+    background: radial-gradient(
+        circle,
+        #000 0%,
+        #000 30%,
+        var(--success) 50%,
+        var(--success-glow) 70%,
+        transparent 90%
+    );
+    box-shadow: 
+        0 0 80px var(--success),
+        0 0 160px var(--success-glow),
+        inset 0 0 60px var(--success);
     opacity: 0;
+    z-index: 15;
+    transform: scale(0);
+    transform-origin: center;
 }
 
 .intro-vortex.active {
-    animation: vortex-spin 3.5s ease-in-out forwards;
+    animation: vortex-grow 3.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-@keyframes vortex-spin {
-    0% { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 0; }
-    20% { transform: translate(-50%, -50%) scale(3) rotate(180deg); opacity: 1; }
-    80% { transform: translate(-50%, -50%) scale(8) rotate(720deg); opacity: 0.8; }
-    100% { transform: translate(-50%, -50%) scale(20) rotate(1080deg); opacity: 0; }
+@keyframes vortex-grow {
+    0% {
+        transform: translate(-50%, -50%) scale(0) rotate(0deg);
+        opacity: 0;
+        filter: blur(10px);
+    }
+    20% {
+        transform: translate(-50%, -50%) scale(1) rotate(180deg);
+        opacity: 1;
+        filter: blur(0px);
+    }
+    60% {
+        transform: translate(-50%, -50%) scale(3) rotate(720deg);
+        opacity: 0.9;
+        filter: blur(2px);
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(6) rotate(1440deg);
+        opacity: 0;
+        filter: blur(20px);
+    }
+}
+
+/* ROTIRE ECRAN COMPLET */
+.intro-container.rotating {
+    animation: screen-rotate-full 3.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes screen-rotate-full {
+    0% {
+        transform: rotate(0deg) scale(1);
+    }
+    50% {
+        transform: rotate(180deg) scale(0.8);
+    }
+    100% {
+        transform: rotate(720deg) scale(0.2);
+        opacity: 0;
+    }
 }
 
 /* TEXT MAXGAMESTORE */
@@ -562,59 +765,57 @@ html, body {
     left: 50%;
     transform: translate(-50%, -50%);
     opacity: 0;
-    z-index: 10;
+    z-index: 20;
 }
 
 .intro-text.active {
-    animation: text-appear 7s ease-out forwards;
+    animation: text-maxgamestore 7s ease-out forwards;
 }
 
 .intro-text h1 {
-    font-size: 64px;
+    font-size: 72px;
     font-weight: 900;
-    letter-spacing: 8px;
+    letter-spacing: 10px;
     color: var(--accent);
     text-shadow: 
         0 0 10px var(--accent),
         0 0 20px var(--accent),
-        0 0 40px var(--accent);
+        0 0 40px var(--accent),
+        0 0 80px var(--accent-glow),
+        0 0 120px var(--accent-glow);
     position: relative;
-    animation: text-flicker 0.15s infinite;
+    animation: text-flicker 0.12s infinite;
+    filter: brightness(1.2);
 }
 
 @keyframes text-flicker {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.85; }
+    0%, 100% { opacity: 1; filter: brightness(1.2); }
+    20% { opacity: 0.9; filter: brightness(1.8); }
+    40% { opacity: 1; filter: brightness(1.5); }
+    60% { opacity: 0.85; filter: brightness(2); }
+    80% { opacity: 1; filter: brightness(1.3); }
 }
 
-@keyframes text-appear {
+@keyframes text-maxgamestore {
     0% {
         opacity: 0;
-        transform: translate(-50%, -50%) scale(0.5);
+        transform: translate(-50%, -50%) scale(0.3);
+        filter: blur(20px);
     }
-    15% {
+    10% {
         opacity: 1;
         transform: translate(-50%, -50%) scale(1);
+        filter: blur(0px);
     }
-    60% {
+    80% {
         opacity: 1;
         transform: translate(-50%, -50%) scale(1);
     }
     100% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.5);
+        filter: blur(10px);
     }
-}
-
-/* ROTIRE ECRAN (la vortex) */
-.intro-container.rotating {
-    animation: screen-rotate 3.5s ease-in-out forwards;
-}
-
-@keyframes screen-rotate {
-    0% { transform: rotate(0deg) scale(1); }
-    50% { transform: rotate(180deg) scale(0.7); }
-    100% { transform: rotate(360deg) scale(0.3); opacity: 0; }
 }
 
 /* ============================================================
@@ -639,6 +840,12 @@ html, body {
     padding: 15px 30px;
     margin-bottom: 30px;
     box-shadow: 0 0 30px rgba(255, 215, 0, 0.1);
+    animation: bar-slide-in 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes bar-slide-in {
+    from { opacity: 0; transform: translateY(-30px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .main-bar-left {
@@ -657,6 +864,16 @@ html, body {
     font-size: 16px;
 }
 
+.user-luna {
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 5px 12px;
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 8px;
+}
+
 .main-bar-right {
     display: flex;
     gap: 30px;
@@ -667,23 +884,27 @@ html, body {
     text-decoration: none;
     font-weight: 600;
     font-size: 14px;
-    letter-spacing: 1px;
-    transition: color 0.3s;
+    letter-spacing: 1.5px;
+    transition: all 0.3s;
     position: relative;
+    padding: 5px 0;
+    text-transform: uppercase;
 }
 
 .menu-link:hover {
     color: var(--accent);
+    text-shadow: 0 0 15px var(--accent-glow);
 }
 
 .menu-link::after {
     content: '';
     position: absolute;
-    bottom: -5px;
+    bottom: -2px;
     left: 0;
     width: 0;
     height: 2px;
     background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
     transition: width 0.3s;
 }
 
