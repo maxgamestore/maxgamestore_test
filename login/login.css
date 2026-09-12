@@ -1,1 +1,724 @@
 
+/* ============================================================
+   RESET + VARIABILE
+   ============================================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg-dark: #0a0a0f;
+    --bg-card: #16161e;
+    --bg-elevated: #1e1e28;
+    --bg-input: #22222e;
+    --border: #2a2a35;
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0b8;
+    --text-muted: #666673;
+    --accent: #ffd700;
+    --accent-glow: rgba(255, 215, 0, 0.4);
+    --success: #00ff88;
+    --success-glow: rgba(0, 255, 136, 0.6);
+    --error: #ff0044;
+    --error-glow: rgba(255, 0, 68, 0.6);
+    --purple: #6a0dad;
+    --transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Segoe UI', -apple-system, sans-serif;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ============================================================
+   STAGES (ECRANE)
+   ============================================================ */
+.stage {
+    position: fixed;
+    inset: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.6s ease, visibility 0.6s ease;
+    z-index: 1;
+}
+
+.stage.active {
+    opacity: 1;
+    visibility: visible;
+    z-index: 10;
+}
+
+/* ============================================================
+   STAGE 1: LOGIN (SPLIT 40/60)
+   ============================================================ */
+.login-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    position: relative;
+    overflow: hidden;
+}
+
+/* STÂNGA - FORM (40%) */
+.login-form-side {
+    width: 40%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    background: var(--bg-dark);
+    z-index: 2;
+    position: relative;
+}
+
+.login-form-wrapper {
+    width: 100%;
+    max-width: 360px;
+}
+
+.logo {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.logo-icon {
+    font-size: 56px;
+    display: block;
+    margin-bottom: 12px;
+    filter: drop-shadow(0 0 20px var(--accent-glow));
+}
+
+.logo-text {
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: 5px;
+    background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--bg-input);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.form-group input::placeholder {
+    color: var(--text-muted);
+}
+
+.form-error {
+    color: var(--error);
+    font-size: 12px;
+    text-align: center;
+    min-height: 18px;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.btn-primary {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+    color: #000;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: inherit;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px var(--accent-glow);
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.form-switch {
+    text-align: center;
+    margin-top: 20px;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.form-switch a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.form-switch a:hover {
+    text-decoration: underline;
+}
+
+/* SEPARATOR OBLIC */
+.divider {
+    position: absolute;
+    left: 40%;
+    top: -10%;
+    width: 2px;
+    height: 120%;
+    background: linear-gradient(180deg, transparent, var(--accent), transparent);
+    transform: rotate(5deg);
+    transform-origin: center;
+    z-index: 3;
+    box-shadow: 0 0 20px var(--accent-glow);
+}
+
+/* DREAPTA - IMAGINI (60%) */
+.login-image-side {
+    width: 60%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    background: var(--purple);
+    /* FADE PE MARGINI */
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+}
+
+.login-image-side .bg-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    transition: opacity 1.2s ease;
+}
+
+.login-image-side .bg-image.active {
+    opacity: 1;
+}
+
+.image-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(10,10,15,0.4) 0%, transparent 50%, rgba(10,10,15,0.4) 100%);
+    pointer-events: none;
+}
+
+/* ============================================================
+   ANIMAȚIA 1 (bară + rotire)
+   ============================================================ */
+.anim1 {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-dark);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.anim1-bar {
+    position: absolute;
+    left: 40%;
+    top: 0;
+    width: 3px;
+    height: 100%;
+    background: linear-gradient(180deg, transparent, var(--accent), transparent);
+    transform: rotate(5deg);
+    transform-origin: center;
+    box-shadow: 0 0 30px var(--accent);
+    transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.anim1-bar.move-right {
+    left: 100%;
+    transform: rotate(5deg) scaleY(1.2);
+}
+
+.anim1-text {
+    position: absolute;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: 4px;
+    opacity: 0;
+    transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    text-shadow: 0 0 20px var(--accent-glow);
+}
+
+#anim1-user {
+    top: 45%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#anim1-pass {
+    top: 55%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.anim1-text.spinning {
+    opacity: 1;
+    animation: spin-circle 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes spin-circle {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) rotate(720deg) scale(0);
+        opacity: 0;
+    }
+}
+
+/* ============================================================
+   STAGE 2: VERIFY (OTP)
+   ============================================================ */
+.verify-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    background: var(--purple);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.verify-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    opacity: 0.3;
+    animation: slide-bg 15s linear infinite;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+}
+
+@keyframes slide-bg {
+    0% { transform: translateX(-50%); }
+    100% { transform: translateX(0%); }
+}
+
+.otp-card {
+    position: relative;
+    z-index: 5;
+    background: rgba(22, 22, 30, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--accent);
+    border-radius: 20px;
+    padding: 45px 40px;
+    max-width: 420px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px var(--accent-glow);
+    text-align: center;
+}
+
+.otp-header {
+    margin-bottom: 20px;
+}
+
+.otp-icon {
+    font-size: 48px;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.otp-header h2 {
+    color: var(--accent);
+    font-size: 20px;
+    letter-spacing: 3px;
+}
+
+.otp-message {
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 25px;
+}
+
+.otp-message strong {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.otp-inputs {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.otp-digit {
+    width: 48px;
+    height: 60px;
+    background: var(--bg-input);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    color: var(--accent);
+    font-size: 24px;
+    font-weight: 800;
+    text-align: center;
+    font-family: inherit;
+    transition: all 0.3s;
+}
+
+.otp-digit:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    transform: scale(1.05);
+}
+
+.otp-digit.filled {
+    border-color: var(--success);
+    box-shadow: 0 0 15px var(--success-glow);
+}
+
+.otp-resend {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top: 20px;
+}
+
+.otp-resend a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.otp-resend a:hover {
+    text-decoration: underline;
+}
+
+/* ============================================================
+   STAGE 3: INTRO (ANIMAȚIA 2)
+   ============================================================ */
+.intro-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background: #000;
+    overflow: hidden;
+}
+
+/* ELECTRICITATE */
+.intro-electricity {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    height: 400px;
+    opacity: 0;
+    transition: opacity 0.5s;
+}
+
+.intro-electricity.active {
+    opacity: 1;
+}
+
+.lightning {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 200px;
+    background: var(--success);
+    box-shadow: 0 0 20px var(--success), 0 0 40px var(--success);
+    transform-origin: center;
+    animation: lightning-flash 0.3s infinite;
+}
+
+#lightning-1 {
+    transform: translate(-50%, -100%) rotate(15deg);
+    animation-delay: 0s;
+}
+
+#lightning-2 {
+    transform: translate(-50%, -100%) rotate(-25deg);
+    animation-delay: 0.1s;
+}
+
+#lightning-3 {
+    transform: translate(-50%, -100%) rotate(45deg);
+    animation-delay: 0.2s;
+}
+
+@keyframes lightning-flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.intro-electricity.red .lightning {
+    background: var(--error);
+    box-shadow: 0 0 20px var(--error), 0 0 40px var(--error);
+}
+
+/* EXPLOZIE */
+.intro-explosion {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--success) 0%, transparent 70%);
+    opacity: 0;
+}
+
+.intro-explosion.active {
+    animation: explode 0.8s ease-out forwards;
+}
+
+.intro-explosion.red {
+    background: radial-gradient(circle, var(--error) 0%, transparent 70%);
+}
+
+@keyframes explode {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(15); opacity: 0; }
+}
+
+/* VORTEX */
+.intro-vortex {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #000 0%, var(--success) 30%, transparent 70%);
+    box-shadow: 0 0 60px var(--success), inset 0 0 40px var(--success);
+    opacity: 0;
+}
+
+.intro-vortex.active {
+    animation: vortex-spin 3.5s ease-in-out forwards;
+}
+
+@keyframes vortex-spin {
+    0% { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 0; }
+    20% { transform: translate(-50%, -50%) scale(3) rotate(180deg); opacity: 1; }
+    80% { transform: translate(-50%, -50%) scale(8) rotate(720deg); opacity: 0.8; }
+    100% { transform: translate(-50%, -50%) scale(20) rotate(1080deg); opacity: 0; }
+}
+
+/* TEXT MAXGAMESTORE */
+.intro-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    z-index: 10;
+}
+
+.intro-text.active {
+    animation: text-appear 7s ease-out forwards;
+}
+
+.intro-text h1 {
+    font-size: 64px;
+    font-weight: 900;
+    letter-spacing: 8px;
+    color: var(--accent);
+    text-shadow: 
+        0 0 10px var(--accent),
+        0 0 20px var(--accent),
+        0 0 40px var(--accent);
+    position: relative;
+    animation: text-flicker 0.15s infinite;
+}
+
+@keyframes text-flicker {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.85; }
+}
+
+@keyframes text-appear {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+    15% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    60% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* ROTIRE ECRAN (la vortex) */
+.intro-container.rotating {
+    animation: screen-rotate 3.5s ease-in-out forwards;
+}
+
+@keyframes screen-rotate {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(0.7); }
+    100% { transform: rotate(360deg) scale(0.3); opacity: 0; }
+}
+
+/* ============================================================
+   STAGE 4: MAIN
+   ============================================================ */
+.main-container {
+    width: 100%;
+    height: 100%;
+    background: var(--bg-dark);
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+}
+
+.main-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-card);
+    border: 1px solid var(--accent);
+    border-radius: 15px;
+    padding: 15px 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.1);
+}
+
+.main-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-icon {
+    font-size: 24px;
+}
+
+.user-name {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.main-bar-right {
+    display: flex;
+    gap: 30px;
+}
+
+.menu-link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 1px;
+    transition: color 0.3s;
+    position: relative;
+}
+
+.menu-link:hover {
+    color: var(--accent);
+}
+
+.menu-link::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--accent);
+    transition: width 0.3s;
+}
+
+.menu-link:hover::after {
+    width: 100%;
+}
+
+.main-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.placeholder-text {
+    color: var(--text-muted);
+    font-size: 16px;
+    letter-spacing: 2px;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 900px) {
+    .login-form-side {
+        width: 100%;
+    }
+    .login-image-side {
+        display: none;
+    }
+    .divider {
+        display: none;
+    }
+    .intro-text h1 {
+        font-size: 40px;
+        letter-spacing: 4px;
+    }
+}
