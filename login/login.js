@@ -1,4 +1,3 @@
-
 // ============================================================
 //  CONFIG
 // ============================================================
@@ -76,16 +75,14 @@ function goToStage(stageName) {
 }
 
 // ============================================================
-//  IMAGINI SLIDESHOW (STAGE 1)
+//  IMAGINI SLIDESHOW
 // ============================================================
 function startImageSlideshow() {
-    // Încearcă să încarce lista de imagini din images.json
     fetch('images/images.json')
         .then(r => r.json())
         .then(data => {
             imagesList = data.images || [];
             if (imagesList.length === 0) {
-                // Fallback: mov
                 console.log('Nu sunt imagini, folosesc fundal mov');
                 return;
             }
@@ -105,7 +102,6 @@ function loadImages() {
         div.style.backgroundImage = `url('images/${img}')`;
         container.insertBefore(div, container.firstChild);
     });
-    // Activează prima imagine
     const firstImg = container.querySelector('.bg-image');
     if (firstImg) firstImg.classList.add('active');
 }
@@ -121,7 +117,7 @@ function startSlideInterval() {
         imgs[imageIndex].classList.remove('active');
         imageIndex = (imageIndex + 1) % imgs.length;
         imgs[imageIndex].classList.add('active');
-    }, 4000); // 4 secunde per imagine
+    }, 4000);
 }
 
 // ============================================================
@@ -141,7 +137,6 @@ function initLoginForm() {
 
         errorEl.textContent = '';
 
-        // Validări client
         if (username.length < 3 || username.length > 24) {
             errorEl.textContent = 'Username: 3-24 caractere';
             return;
@@ -169,7 +164,6 @@ function initLoginForm() {
                 currentSessionId = data.sessionId;
                 otpEmail = data.email || 'email@example.com';
                 
-                // Salvează sesiunea
                 localStorage.setItem('wof_session', JSON.stringify({
                     username: data.username,
                     token: data.token,
@@ -179,7 +173,7 @@ function initLoginForm() {
                     luna: data.luna
                 }));
 
-                // Pornește animația 1
+                // Animația 1
                 await playAnimation1(username, password);
                 
                 // Treci la verify
@@ -187,20 +181,16 @@ function initLoginForm() {
                 document.getElementById('otp-email').textContent = otpEmail;
                 document.querySelector('.otp-digit').focus();
                 
-                // Reset form
                 btn.disabled = false;
                 btn.textContent = 'LOGIN';
 
             } else {
-                // Eroare - user sau parolă greșită
                 btn.disabled = false;
                 btn.textContent = 'LOGIN';
                 
-                // Mesaj eroare
                 errorEl.textContent = data.error || 'Something user or password is wrong';
                 playSound('sfx-error', 0.5);
                 
-                // Shake animation pe form
                 form.classList.add('shake');
                 setTimeout(() => form.classList.remove('shake'), 500);
             }
@@ -218,49 +208,52 @@ function initLoginForm() {
 // ============================================================
 function playAnimation1(username, password) {
     return new Promise((resolve) => {
-        // Ascunde form-ul
-        const formSide = document.querySelector('.login-form-side');
-        const imageSide = document.querySelector('.login-image-side');
-        const divider = document.querySelector('.divider');
-        
-        // Set text pentru animație
         const anim1 = document.getElementById('anim1');
         const bar = document.getElementById('anim1-bar');
         const userEl = document.getElementById('anim1-user');
         const passEl = document.getElementById('anim1-pass');
+        const uiBurst = document.getElementById('anim1-ui-burst');
         
-        // Set text
         userEl.textContent = username;
         passEl.textContent = '••••••••';
         
-        // Afișează animația
         anim1.classList.remove('hidden');
+        anim1.style.opacity = '1';
+        uiBurst.classList.remove('active');
         
-        // Faza 1: bara se mișcă spre dreapta
+        // Faza 1: bara se mișcă COMPLET spre dreapta
         setTimeout(() => {
             bar.classList.add('move-right');
             playSound('sfx-whoosh', 0.4);
         }, 50);
         
-        // Faza 2: user + parola se rotesc
+        // Faza 2: user + parola se rotesc și merg în centru
         setTimeout(() => {
             userEl.classList.add('spinning');
             passEl.classList.add('spinning');
-        }, 400);
+        }, 500);
         
-        // Faza 3: fade out + rezolvă
+        // Faza 3: UI BURST (explozie din centru)
         setTimeout(() => {
-            anim1.style.transition = 'opacity 0.4s';
+            uiBurst.classList.add('active');
+            playSound('sfx-whoosh', 0.6);
+        }, 2100);
+        
+        // Faza 4: Fade out + resolve
+        setTimeout(() => {
+            anim1.style.transition = 'opacity 0.5s';
             anim1.style.opacity = '0';
+            
             setTimeout(() => {
                 anim1.classList.add('hidden');
                 anim1.style.opacity = '1';
                 bar.classList.remove('move-right');
                 userEl.classList.remove('spinning');
                 passEl.classList.remove('spinning');
+                uiBurst.classList.remove('active');
                 resolve();
-            }, 400);
-        }, 1900);
+            }, 500);
+        }, 2700);
     });
 }
 
@@ -273,9 +266,7 @@ function initSwitchRegister() {
     
     link.addEventListener('click', (e) => {
         e.preventDefault();
-        // Momentan - alert
         alert('Register va fi disponibil în curând!');
-        // SAU poți implementa register aici
     });
 }
 
@@ -286,11 +277,9 @@ function initOTPInputs() {
     const inputs = document.querySelectorAll('.otp-digit');
     
     inputs.forEach((input, idx) => {
-        // Când tastezi
         input.addEventListener('input', (e) => {
             const val = e.target.value;
             
-            // Doar cifre
             if (!/^\d*$/.test(val)) {
                 e.target.value = '';
                 return;
@@ -298,7 +287,6 @@ function initOTPInputs() {
             
             if (val.length === 1) {
                 input.classList.add('filled');
-                // Auto-focus la următorul
                 if (idx < inputs.length - 1) {
                     inputs[idx + 1].focus();
                 }
@@ -307,14 +295,12 @@ function initOTPInputs() {
             }
         });
         
-        // Backspace
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Backspace' && !e.target.value && idx > 0) {
                 inputs[idx - 1].focus();
             }
         });
         
-        // Paste
         input.addEventListener('paste', (e) => {
             e.preventDefault();
             const paste = (e.clipboardData || window.clipboardData).getData('text');
@@ -356,6 +342,7 @@ function initOTPButtons() {
             errorEl.textContent = '';
             verifyBtn.disabled = true;
             verifyBtn.textContent = 'SE VERIFICĂ...';
+            playSound('sfx-click');
             
             try {
                 const res = await fetch(API + '/verify-account', {
@@ -369,26 +356,22 @@ function initOTPButtons() {
                 const data = await res.json();
                 
                 if (data.success) {
-                    // COD CORECT - animația 2 VERDE
                     verifyBtn.textContent = 'SUCCESS!';
                     goToStage('intro');
                     await playAnimation2(true);
                     
-                    // Afișează main după animație
                     document.getElementById('main-username').textContent = currentUser.username;
+                    document.getElementById('main-luna').textContent = currentUser.luna || 100;
                     goToStage('main');
                     
                 } else {
-                    // COD GREȘIT - animația 2 ROȘIE
                     errorEl.textContent = data.error || 'Cod invalid!';
                     verifyBtn.disabled = false;
                     verifyBtn.textContent = 'VERIFY';
                     
-                    // Animație roșie
                     goToStage('intro');
                     await playAnimation2(false);
                     
-                    // Înapoi la verify
                     inputs.forEach(i => {
                         i.value = '';
                         i.classList.remove('filled');
@@ -434,92 +417,108 @@ function initOTPButtons() {
 // ============================================================
 function playAnimation2(isSuccess) {
     return new Promise((resolve) => {
+        const container = document.querySelector('.intro-container');
         const electricity = document.getElementById('intro-electricity');
         const explosion = document.getElementById('intro-explosion');
         const vortex = document.getElementById('intro-vortex');
         const text = document.getElementById('intro-text');
-        const container = document.querySelector('.intro-container');
         
         // Reset
+        container.classList.remove('rotating', 'fade-out-bg');
+        container.style.transform = '';
         electricity.classList.remove('active', 'red');
         explosion.classList.remove('active', 'red');
         vortex.classList.remove('active');
+        vortex.style.top = '';
+        vortex.style.left = '';
         text.classList.remove('active');
-        container.classList.remove('rotating');
         
         if (isSuccess) {
             // ===== COD CORECT - VERDE =====
             
-            // Faza 1: Electricitate verde
+            // Faza 1: Fade out background
+            setTimeout(() => {
+                container.classList.add('fade-out-bg');
+            }, 100);
+            
+            // Faza 2: Electricitate detaliată
             setTimeout(() => {
                 electricity.classList.add('active');
-                playSound('sfx-electric', 0.8);
-            }, 300);
+                playSound('sfx-electric', 0.9);
+            }, 400);
             
-            // Faza 2: Explozie verde
+            // Faza 3: Explozie MARE
             setTimeout(() => {
                 stopSound('sfx-electric');
                 explosion.classList.add('active');
                 playSound('sfx-explosion', 1.0);
-            }, 1800);
+            }, 2000);
             
-            // Faza 3: Vortex + rotire ecran
+            // Faza 4: Vortex într-o ZONĂ ALEATORIE
             setTimeout(() => {
+                const randomX = 20 + Math.random() * 60;
+                const randomY = 20 + Math.random() * 60;
+                
+                vortex.style.top = randomY + '%';
+                vortex.style.left = randomX + '%';
+                
                 vortex.classList.add('active');
                 container.classList.add('rotating');
                 playSound('sfx-vortex', 1.0);
-            }, 2600);
+            }, 2900);
             
-            // Faza 4: Reset + text MAXGAMESTORE
+            // Faza 5: Reset + text MAXGAMESTORE
             setTimeout(() => {
-                container.classList.remove('rotating');
+                container.classList.remove('rotating', 'fade-out-bg');
                 container.style.transform = '';
                 electricity.classList.remove('active');
                 explosion.classList.remove('active');
                 vortex.classList.remove('active');
+                vortex.style.top = '';
+                vortex.style.left = '';
                 
-                // Text MAXGAMESTORE
                 text.classList.add('active');
-                playSound('sfx-electric-long', 0.6);
+                playSound('sfx-electric-long', 0.7);
                 
-            }, 6200);
+            }, 6400);
             
-            // Faza 5: Final
+            // Faza 6: Final
             setTimeout(() => {
                 text.classList.remove('active');
                 stopSound('sfx-electric-long');
                 playSound('sfx-whoosh', 0.5);
                 resolve();
-            }, 13500); // 7 secunde text
+            }, 13400);
             
         } else {
             // ===== COD GREȘIT - ROȘU =====
             
-            // Faza 1: Electricitate roșie
+            setTimeout(() => {
+                container.classList.add('fade-out-bg');
+            }, 100);
+            
             setTimeout(() => {
                 electricity.classList.add('active', 'red');
-                playSound('sfx-electric', 0.8);
-            }, 300);
+                playSound('sfx-electric', 0.9);
+            }, 400);
             
-            // Faza 2: Explozie roșie
             setTimeout(() => {
                 stopSound('sfx-electric');
                 explosion.classList.add('active', 'red');
                 playSound('sfx-explosion', 1.0);
-            }, 1800);
+            }, 2000);
             
-            // Faza 3: Negru + eroare
             setTimeout(() => {
                 playSound('sfx-error', 0.7);
-            }, 2600);
+            }, 2900);
             
-            // Faza 4: Final
             setTimeout(() => {
+                container.classList.remove('fade-out-bg');
                 electricity.classList.remove('active', 'red');
                 explosion.classList.remove('active', 'red');
                 playSound('sfx-whoosh', 0.5);
                 resolve();
-            }, 4200);
+            }, 4400);
         }
     });
 }
