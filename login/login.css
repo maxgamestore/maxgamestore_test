@@ -88,6 +88,34 @@ html, body {
     z-index: 10;
 }
 
+/* IRIS REVEAL — folosit pentru tranziția fluidă dintr-o animație (ex: UI burst)
+   direct în stage-ul următor, ca și cum acesta "crește" din punctul de impact.
+   Suprascrie complet transition-ul de bază al .stage (doar clip-path se animă,
+   fără cross-fade dublu pe opacity). */
+.stage.reveal-start {
+    visibility: visible;
+    opacity: 1;
+    z-index: 110;
+    clip-path: circle(0% at 50% 50%);
+    transition: clip-path 1.1s var(--ease-expo);
+}
+
+.stage.reveal-start.reveal-grow {
+    clip-path: circle(150% at 50% 50%);
+}
+
+/* Mască neagră inserată dinamic în fundalul stage-ului revelat,
+   care se stinge (fade) chiar în timpul reveal-ului */
+.reveal-fade-mask {
+    position: absolute;
+    inset: 0;
+    background: #000;
+    opacity: 1;
+    z-index: 1;
+    pointer-events: none;
+    transition: opacity 0.9s ease-out;
+}
+
 /* ============================================================
    STAGE 1: LOGIN
    ============================================================ */
@@ -507,6 +535,15 @@ html, body {
     100% { transform: translateX(0%); }
 }
 
+@keyframes card-pop-in {
+    0% { opacity: 0; transform: scale(0.8) translateY(10px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.otp-card.card-pop {
+    animation: card-pop-in 0.7s var(--ease-spring) both;
+}
+
 .otp-card {
     position: relative;
     z-index: 5;
@@ -657,7 +694,11 @@ html, body {
         0 0 40px var(--success),
         0 0 80px var(--success-glow);
     transform-origin: center bottom;
-    animation: lightning-flicker 0.15s infinite;
+    /* --rot / --scaleY sunt randomizate din JS la fiecare rulare (randomizeLightningBolts) */
+    transform: translate(-50%, -100%) rotate(var(--rot, 0deg)) scaleY(var(--scaleY, 1));
+    animation:
+        lightning-flicker 0.15s infinite,
+        lightning-wiggle 0.09s infinite;
     filter: blur(0.5px);
 }
 
@@ -670,14 +711,14 @@ html, body {
     opacity: 0.7;
 }
 
-#lightning-1 { transform: translate(-50%, -100%) rotate(15deg) scaleY(1.0); animation-delay: 0s; }
-#lightning-2 { transform: translate(-50%, -100%) rotate(-25deg) scaleY(1.2); animation-delay: 0.05s; }
-#lightning-3 { transform: translate(-50%, -100%) rotate(45deg) scaleY(0.9); animation-delay: 0.1s; }
-#lightning-4 { transform: translate(-50%, -100%) rotate(-60deg) scaleY(1.1); animation-delay: 0.15s; }
-#lightning-5 { transform: translate(-50%, -100%) rotate(80deg) scaleY(1.0); animation-delay: 0.2s; }
-#lightning-6 { transform: translate(-50%, -100%) rotate(-100deg) scaleY(1.3); animation-delay: 0.25s; }
-#lightning-7 { transform: translate(-50%, -100%) rotate(120deg) scaleY(0.8); animation-delay: 0.3s; }
-#lightning-8 { transform: translate(-50%, -100%) rotate(-140deg) scaleY(1.1); animation-delay: 0.35s; }
+#lightning-1 { --rot: 15deg;   --scaleY: 1.0; animation-delay: 0s, 0s; }
+#lightning-2 { --rot: -25deg;  --scaleY: 1.2; animation-delay: 0.05s, 0.02s; }
+#lightning-3 { --rot: 45deg;   --scaleY: 0.9; animation-delay: 0.1s, 0.04s; }
+#lightning-4 { --rot: -60deg;  --scaleY: 1.1; animation-delay: 0.15s, 0.01s; }
+#lightning-5 { --rot: 80deg;   --scaleY: 1.0; animation-delay: 0.2s, 0.03s; }
+#lightning-6 { --rot: -100deg; --scaleY: 1.3; animation-delay: 0.25s, 0.05s; }
+#lightning-7 { --rot: 120deg;  --scaleY: 0.8; animation-delay: 0.3s, 0.02s; }
+#lightning-8 { --rot: -140deg; --scaleY: 1.1; animation-delay: 0.35s, 0.04s; }
 
 @keyframes lightning-flicker {
     0%, 100% {
@@ -698,10 +739,14 @@ html, body {
     }
 }
 
-/* fază finală de "intensify" — flicker mai rapid și mai strălucitor, aplicat de JS */
-.intro-electricity.active.intensify .lightning {
-    animation-duration: 0.08s;
-    filter: blur(0.3px) brightness(1.4);
+/* fulgerul "tremură" continuu — nu mai e o linie statică ce doar pâlpâie */
+@keyframes lightning-wiggle {
+    0%, 100% {
+        transform: translate(-50%, -100%) rotate(calc(var(--rot, 0deg) - 4deg)) scaleY(var(--scaleY, 1));
+    }
+    50% {
+        transform: translate(-50%, -100%) rotate(calc(var(--rot, 0deg) + 4deg)) scaleY(calc(var(--scaleY, 1) * 1.08));
+    }
 }
 
 .intro-electricity.red .lightning {
@@ -718,6 +763,14 @@ html, body {
         0 0 20px var(--error),
         0 0 40px var(--error),
         0 0 80px var(--error-glow);
+}
+
+/* fază finală de "intensify" — flicker + wiggle mult mai rapide și mai strălucitoare */
+.intro-electricity.active.intensify .lightning {
+    animation:
+        lightning-flicker 0.07s infinite,
+        lightning-wiggle 0.045s infinite;
+    filter: blur(0.3px) brightness(1.5);
 }
 
 /* EXPLOZIE MARE, cu inel de shockwave alb suplimentar */
