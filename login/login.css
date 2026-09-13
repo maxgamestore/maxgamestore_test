@@ -155,6 +155,18 @@ html, body {
     display: block;
     margin-bottom: 12px;
     filter: drop-shadow(0 0 20px var(--accent-glow));
+    animation: logo-breathe 3.2s ease-in-out infinite;
+}
+
+@keyframes logo-breathe {
+    0%, 100% {
+        filter: drop-shadow(0 0 20px var(--accent-glow));
+        transform: scale(1);
+    }
+    50% {
+        filter: drop-shadow(0 0 34px var(--accent-glow));
+        transform: scale(1.05);
+    }
 }
 
 .logo-text {
@@ -224,6 +236,24 @@ html, body {
     cursor: pointer;
     transition: all 0.3s;
     font-family: inherit;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.25);
+    transform: scale(0);
+    pointer-events: none;
+    animation: ripple-expand 0.6s var(--ease-smooth);
+}
+
+@keyframes ripple-expand {
+    to {
+        transform: scale(1);
+        opacity: 0;
+    }
 }
 
 .btn-primary:hover {
@@ -266,6 +296,28 @@ html, body {
     transform-origin: center;
     z-index: 3;
     box-shadow: 0 0 20px var(--accent-glow);
+    overflow: visible;
+}
+
+.divider::after {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: -20%;
+    width: 4px;
+    height: 22%;
+    background: linear-gradient(180deg, transparent, #ffffff, transparent);
+    filter: blur(1.5px);
+    opacity: 0;
+    animation: divider-shimmer 3.6s ease-in-out infinite;
+}
+
+@keyframes divider-shimmer {
+    0% { top: -20%; opacity: 0; }
+    12% { opacity: 0.9; }
+    50% { top: 55%; opacity: 0.9; }
+    88% { opacity: 0; }
+    100% { top: 110%; opacity: 0; }
 }
 
 /* DREAPTA - IMAGINI */
@@ -288,10 +340,17 @@ html, body {
     background-position: center;
     opacity: 0;
     transition: opacity 1.2s ease;
+    transform: scale(1);
 }
 
 .login-image-side .bg-image.active {
     opacity: 1;
+    animation: ken-burns 4.6s ease-out forwards;
+}
+
+@keyframes ken-burns {
+    from { transform: scale(1); }
+    to { transform: scale(1.08); }
 }
 
 .image-overlay {
@@ -619,6 +678,36 @@ html, body {
     box-shadow: 0 0 15px var(--success-glow);
 }
 
+.otp-digit.pop {
+    animation: otp-pop 0.3s var(--ease-spring);
+}
+
+@keyframes otp-pop {
+    0% { transform: scale(1); }
+    45% { transform: scale(1.18); }
+    100% { transform: scale(1); }
+}
+
+/* flash roșu peste card la cod greșit — inserat/scos dinamic din JS */
+.otp-card-flash {
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    background: var(--error);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 6;
+}
+
+.otp-card-flash.flash-active {
+    animation: card-flash 0.5s ease-out;
+}
+
+@keyframes card-flash {
+    0% { opacity: 0.55; }
+    100% { opacity: 0; }
+}
+
 .otp-resend {
     color: var(--text-muted);
     font-size: 12px;
@@ -888,6 +977,15 @@ html, body {
     opacity: 0;
 }
 
+.intro-vortex::after {
+    content: '';
+    position: absolute;
+    inset: -46px;
+    border-radius: 50%;
+    background: conic-gradient(from 180deg, transparent, rgba(0, 255, 136, 0.5) 40%, transparent 70%);
+    opacity: 0;
+}
+
 .intro-vortex.active {
     animation: vortex-grow 4s var(--ease-expo) forwards;
 }
@@ -897,9 +995,19 @@ html, body {
     animation: vortex-spin 1.1s linear infinite;
 }
 
+.intro-vortex.active::after {
+    opacity: 0.5;
+    animation: vortex-spin-reverse 1.8s linear infinite;
+}
+
 @keyframes vortex-spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+}
+
+@keyframes vortex-spin-reverse {
+    from { transform: rotate(360deg); }
+    to { transform: rotate(0deg); }
 }
 
 @keyframes vortex-grow {
@@ -1089,6 +1197,16 @@ html, body {
     border-radius: 8px;
 }
 
+.user-luna.luna-pulse {
+    animation: luna-pulse 0.4s var(--ease-spring);
+}
+
+@keyframes luna-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
 .main-bar-right {
     display: flex;
     gap: 30px;
@@ -1138,6 +1256,32 @@ html, body {
     color: var(--text-muted);
     font-size: 16px;
     letter-spacing: 2px;
+}
+
+/* ============================================================
+   ACCESIBILITATE
+   ============================================================ */
+
+/* focus vizibil pentru navigare cu tastatura — nu doar cu mouse-ul */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* Persoanele cu prefers-reduced-motion pot avea sensibilitate la mișcare
+   sau la lumini intermitente (fulgerul din animația 2 poate fi un
+   trigger real pentru epilepsie fotosensibilă). Reducem orice animație
+   CSS la aproape instant. Partea de canvas (particule/fulgere pe
+   canvas) e oprită separat din JS — vezi REDUCE_MOTION în login.js. */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }
 
 /* ============================================================
