@@ -18,6 +18,31 @@ let imageIndex = 0;
 let imagesList = [];
 
 // ============================================================
+//  ACCESIBILITATE — prefers-reduced-motion
+// ============================================================
+// Fulgerul (flicker rapid pe canvas) poate fi un trigger real pentru
+// persoane cu epilepsie fotosensibilă. Dacă utilizatorul a cerut la
+// nivel de OS/browser "reduce motion", oprim complet particulele/
+// fulgerele de pe canvas și scurtăm animațiile la simple treceri de stare.
+const REDUCE_MOTION = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+// ============================================================
+//  FETCH CU TIMEOUT + RETRY — robustețe la rețea instabilă
+// ============================================================
+// Un fetch care rămâne agățat (server ngrok picat, wifi instabil etc.)
+// nu mai lasă userul blocat pe "SE CONECTEAZĂ..." la nesfârșit.
+async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const res = await fetch(url, { ...options, signal: controller.signal });
+        return res;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+// ============================================================
 //  DEVICE ID
 // ============================================================
 function generateDeviceId() {
@@ -323,6 +348,20 @@ function revealStageFromCenter(toStageName, opts = {}) {
     });
 }
 
+// Feedback tactil la click — un cerc care se extinde din punctul apăsat
+function createRipple(e, btn) {
+    if (REDUCE_MOTION) return;
+    const rect = btn.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height) * 1.4;
+    const ripple = document.createElement('span');
+    ripple.className = 'btn-ripple';
+    ripple.style.width = ripple.style.height = size + 'px';
+    ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+    ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+    btn.appendChild(ripple);
+    ripple.addEventListener('animationend', () => ripple.remove());
+}
+
 // ============================================================
 //  INIT
 // ============================================================
@@ -332,7 +371,78 @@ document.addEventListener('DOMContentLoaded', () => {
     initOTPInputs();
     initOTPButtons();
     startImageSlideshow();
+    initAccessibility();
+    initButtonRipples();
 });
+
+// Anunțuri pentru cititoare de ecran — erorile/confirmările se anunță
+// automat, fără să fie nevoie ca userul să navigheze manual la ele
+function initAccessibility() {
+    const loginError = document.getElementById('login-error');
+    if (loginError) loginError.setAttribute('role', 'alert');
+
+    const otpError = document.getElementById('otp-error');
+    if (otpError) otpError.setAttribute('role', 'alert');
+
+    const otpEmailEl = document.getElementById('otp-email');
+    if (otpEmailEl) otpEmailEl.closest('.otp-message')?.setAttribute('aria-live', 'polite');
+}
+
+// Ripple pe orice buton .btn-primary prezent la momentul inițializării
+function initButtonRipples() {
+    document.querySelectorAll('.btn-primary').forEach(btn => {
+        btn.addEventListener('click', (e) => createRipple(e, btn));
+    });
+}
+
+// Flash roșu + shake pe cardul OTP la cod greșit
+function flashOtpCard() {
+    const card = document.querySelector('.otp-card');
+    if (!card) return;
+
+    if (!REDUCE_MOTION) {
+        card.classList.remove('shake');
+        // eslint-disable-next-line no-unused-expressions
+        card.offsetWidth;
+        card.classList.add('shake');
+        setTimeout(() => card.classList.remove('shake'), 500);
+    }
+
+    const flash = document.createElement('div');
+    flash.className = 'otp-card-flash flash-active';
+    card.appendChild(flash);
+    flash.addEventListener('animationend', () => flash.remove());
+}
+
+// Contorul de "luna" numără de la 0 până la valoarea reală, în loc să
+// apară brusc — un mic detaliu care face ecranul principal să pară viu
+function setLunaCount(target) {
+    const el = document.getElementById('main-luna');
+    if (!el) return;
+    target = parseInt(target, 10) || 0;
+
+    if (REDUCE_MOTION) {
+        el.textContent = target;
+    } else {
+        const duration = 800;
+        const start = performance.now();
+        function frame(t) {
+            const progress = Math.min((t - start) / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+            el.textContent = Math.round(eased * target);
+            if (progress < 1) requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+    }
+
+    const badge = el.closest('.user-luna');
+    if (badge) {
+        badge.classList.remove('luna-pulse');
+        // eslint-disable-next-line no-unused-expressions
+        badge.offsetWidth;
+        badge.classList.add('luna-pulse');
+    }
+}
 
 // ============================================================
 //  STAGE SWITCHING
@@ -421,7 +531,7 @@ function initLoginForm() {
         playSound('sfx-click');
 
         try {
-            const res = await fetch(API + '/secure-login', {
+            const res = await fetchWithTimeout(API + '/secure-login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password, deviceId: currentDeviceId })
@@ -464,7 +574,9 @@ function initLoginForm() {
             }
         } catch (err) {
             console.error(err);
-            errorEl.textContent = 'Eroare conexiune server';
+            errorEl.textContent = err.name === 'AbortError'
+                ? 'Serverul nu răspunde. Încearcă din nou.'
+                : 'Eroare conexiune server';
             btn.disabled = false;
             btn.textContent = 'LOGIN';
         }
@@ -481,6 +593,16 @@ const ANIM1_TIMING = {
     revealDuration: 1150 // durata reveal-ului propriu-zis
 };
 
+// Variantă scurtată pentru prefers-reduced-motion — aceleași faze logice,
+// dar aproape instant, fără particule/shake
+const ANIM1_TIMING_REDUCED = {
+    barStart: 0,
+    spinStart: 60,
+    burstStart: 160,
+    revealStart: 260,
+    revealDuration: 350
+};
+
 // ============================================================
 //  ANIMAȚIA 1 — bară + rotire spre centru + UI burst + reveal continuu
 // ============================================================
@@ -493,6 +615,7 @@ const ANIM1_TIMING = {
 // continuă, nu două animații lipite.
 function playAnimation1(username, password) {
     return new Promise(async (resolve) => {
+        const T = REDUCE_MOTION ? ANIM1_TIMING_REDUCED : ANIM1_TIMING;
         const anim1 = document.getElementById('anim1');
         const bar = document.getElementById('anim1-bar');
         const userEl = document.getElementById('anim1-user');
@@ -506,50 +629,54 @@ function playAnimation1(username, password) {
         anim1.style.opacity = '1';
         uiBurst.classList.remove('active');
 
-        // FX: canvas de particule peste tot anim1-ul
-        const canvas = createFxCanvas(anim1);
-        const ctx = canvas.getContext('2d');
+        // FX: canvas de particule peste tot anim1-ul (omis complet la reduced-motion)
+        const canvas = REDUCE_MOTION ? null : createFxCanvas(anim1);
+        const ctx = canvas ? canvas.getContext('2d') : null;
         const particles = [];
-        runParticleLoop(canvas, ctx, particles, ANIM1_TIMING.revealStart + 1200);
+        if (canvas) runParticleLoop(canvas, ctx, particles, T.revealStart + 1200);
 
         // Faza 1: bara se mișcă COMPLET spre dreapta, cu scântei care se
         // desprind din ea (efect de "friction spark")
         setTimeout(() => {
             bar.classList.add('move-right');
             playSound('sfx-whoosh', 0.4);
-            spawnParticles(particles, canvas.width * 0.4, canvas.height * 0.5, 18, {
-                colors: ['#ffd700', '#fff2b0'],
-                speed: [3, 9],
-                life: [300, 600],
-                spread: Math.PI * 0.6,
-                angleOffset: 0
-            });
-        }, ANIM1_TIMING.barStart);
+            if (canvas) {
+                spawnParticles(particles, canvas.width * 0.4, canvas.height * 0.5, 18, {
+                    colors: ['#ffd700', '#fff2b0'],
+                    speed: [3, 9],
+                    life: [300, 600],
+                    spread: Math.PI * 0.6,
+                    angleOffset: 0
+                });
+            }
+        }, T.barStart);
 
         // Faza 2: user + parola se rotesc și merg în centru (spring/overshoot)
         setTimeout(() => {
             userEl.classList.add('spinning');
             passEl.classList.add('spinning');
-        }, ANIM1_TIMING.spinStart);
+        }, T.spinStart);
 
         // Faza 3: UI BURST (explozie din centru) + shake + particule radiale
         setTimeout(() => {
             uiBurst.classList.add('active');
             playSound('sfx-whoosh', 0.6);
-            screenShake(anim1, 350);
-            spawnParticles(particles, canvas.width / 2, canvas.height / 2, 45, {
-                colors: ['#ffd700', '#ffffff', '#ff8c00'],
-                speed: [3, 11],
-                life: [500, 950],
-                size: [1.5, 4]
-            });
-        }, ANIM1_TIMING.burstStart);
+            if (!REDUCE_MOTION) screenShake(anim1, 350);
+            if (canvas) {
+                spawnParticles(particles, canvas.width / 2, canvas.height / 2, 45, {
+                    colors: ['#ffd700', '#ffffff', '#ff8c00'],
+                    speed: [3, 11],
+                    life: [500, 950],
+                    size: [1.5, 4]
+                });
+            }
+        }, T.burstStart);
 
         // Faza 4: burst-ul "crește" direct în verify — o singură tranziție,
         // fără fade-out separat al anim1-ului
         setTimeout(async () => {
             await revealStageFromCenter('verify', {
-                duration: ANIM1_TIMING.revealDuration,
+                duration: T.revealDuration,
                 popSelector: '.otp-card'
             });
 
@@ -595,6 +722,12 @@ function initOTPInputs() {
 
             if (val.length === 1) {
                 input.classList.add('filled');
+                if (!REDUCE_MOTION) {
+                    input.classList.remove('pop');
+                    // eslint-disable-next-line no-unused-expressions
+                    input.offsetWidth;
+                    input.classList.add('pop');
+                }
                 if (idx < inputs.length - 1) {
                     inputs[idx + 1].focus();
                 }
@@ -653,7 +786,7 @@ function initOTPButtons() {
             playSound('sfx-click');
 
             try {
-                const res = await fetch(API + '/verify-account', {
+                const res = await fetchWithTimeout(API + '/verify-account', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -665,14 +798,15 @@ function initOTPButtons() {
 
                 if (data.success) {
                     verifyBtn.textContent = 'SUCCESS!';
-                    goToStage('intro');
+                    await revealStageFromCenter('intro', { duration: 900 });
                     await playAnimation2(true);
 
                     document.getElementById('main-username').textContent = currentUser.username;
-                    document.getElementById('main-luna').textContent = currentUser.luna || 100;
-                    goToStage('main');
+                    setLunaCount(currentUser.luna || 100);
+                    await revealStageFromCenter('main', { duration: 900 });
 
                 } else {
+                    flashOtpCard();
                     errorEl.textContent = data.error || 'Cod invalid!';
                     verifyBtn.disabled = false;
                     verifyBtn.textContent = 'VERIFY';
@@ -689,7 +823,9 @@ function initOTPButtons() {
                 }
             } catch (err) {
                 console.error(err);
-                errorEl.textContent = 'Eroare conexiune server';
+                errorEl.textContent = err.name === 'AbortError'
+                    ? 'Serverul nu răspunde. Încearcă din nou.'
+                    : 'Eroare conexiune server';
                 verifyBtn.disabled = false;
                 verifyBtn.textContent = 'VERIFY';
             }
@@ -701,7 +837,7 @@ function initOTPButtons() {
             e.preventDefault();
 
             try {
-                const res = await fetch(API + '/resend-verification', {
+                const res = await fetchWithTimeout(API + '/resend-verification', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: currentUser.username })
@@ -714,7 +850,7 @@ function initOTPButtons() {
                     alert('Eroare: ' + (data.error || 'Unknown'));
                 }
             } catch (err) {
-                alert('Eroare conexiune server');
+                alert(err.name === 'AbortError' ? 'Serverul nu răspunde. Încearcă din nou.' : 'Eroare conexiune server');
             }
         });
     }
@@ -746,9 +882,56 @@ const ANIM2_TIMING = {
 };
 
 // ============================================================
+//  ANIMAȚIA 2 (REDUCED-MOTION) — fără canvas, fără fulgere, fără
+//  rotirea ecranului (rotirea completă e un trigger clasic pentru
+//  disconfort vestibular). Doar o tranziție de stare, scurtă și clară.
+// ============================================================
+function playAnimation2Reduced(isSuccess) {
+    return new Promise((resolve) => {
+        const container = document.querySelector('.intro-container');
+        const electricity = document.getElementById('intro-electricity');
+        const explosion = document.getElementById('intro-explosion');
+        const vortex = document.getElementById('intro-vortex');
+        const text = document.getElementById('intro-text');
+
+        container.classList.remove('rotating', 'fade-out-bg');
+        electricity.classList.remove('active', 'red', 'intensify');
+        explosion.classList.remove('active', 'red');
+        vortex.classList.remove('active');
+        text.classList.remove('active');
+
+        if (isSuccess) {
+            playSound('sfx-explosion', 0.6);
+            explosion.classList.add('active');
+
+            setTimeout(() => {
+                explosion.classList.remove('active');
+                text.classList.add('active');
+                playSound('sfx-whoosh', 0.4);
+            }, 300);
+
+            setTimeout(() => {
+                text.classList.remove('active');
+                resolve();
+            }, 1400);
+        } else {
+            playSound('sfx-error', 0.6);
+            explosion.classList.add('active', 'red');
+
+            setTimeout(() => {
+                explosion.classList.remove('active', 'red');
+                resolve();
+            }, 500);
+        }
+    });
+}
+
+// ============================================================
 //  ANIMAȚIA 2 — electricitate + explozie + vortex + rotire + text
 // ============================================================
 function playAnimation2(isSuccess) {
+    if (REDUCE_MOTION) return playAnimation2Reduced(isSuccess);
+
     return new Promise((resolve) => {
         const container = document.querySelector('.intro-container');
         const electricity = document.getElementById('intro-electricity');
