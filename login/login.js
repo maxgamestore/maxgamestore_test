@@ -123,7 +123,7 @@ function createFxRuntime(canvas, ctx) {
         particles: [],
         bolts: [],
         flashes: [],
-        lightning: null,
+        lightnings: [],   // array de surse simultane (înainte: un singur "lightning")
         lastT: null,
         stopAt: 0,
         running: false
@@ -179,22 +179,39 @@ function fxSpawnParticles(fx, x, y, count, opts = {}) {
     }
 }
 
-// Pornește/actualizează o "sursă" de fulgere care se acumulează progresiv:
-// intensitatea (nr. de descărcări, lungimea lor, cât de des apar) CREȘTE
-// spre finalul duratei — se simte ca o acumulare de energie, nu un
-// flicker constant.
-function fxSetLightning(fx, originX, originY, duration, color, glow) {
+// Pornește o "sursă" de fulgere care se acumulează progresiv: intensitatea
+// (nr. de descărcări, lungimea lor, cât de des apar) CREȘTE spre finalul
+// duratei — se simte ca o acumulare de energie, nu un flicker constant.
+// Se pot rula mai multe surse simultan (ex: 3 bile de electricitate).
+//
+// opts.radius  — cât de "mari" sunt descărcările (implicit 150px)
+// opts.followEl — dacă e dat, sursa își ia poziția din acest element DOM
+//                 la fiecare cadru (util când bila se mișcă, ex: la merge)
+// Returnează obiectul-sursă, ca să-i poți schimba direct .color/.glow
+// (pentru flicker) sau .originX/.originY mai târziu.
+function fxAddLightning(fx, originX, originY, duration, color, glow, opts = {}) {
     const now = performance.now();
-    fx.lightning = {
-        originX, originY, color, glow,
+    const source = {
+        originX, originY,
+        followEl: opts.followEl || null,
+        radius: opts.radius || 150,
+        color, glow,
         startTime: now,
         endTime: now + duration,
         nextStrike: 0
     };
+    fx.lightnings.push(source);
+    return source;
 }
 
-function fxClearLightning(fx) {
-    fx.lightning = null;
+// Scoate o sursă anume (dacă e dată) sau toate sursele de fulger
+function fxRemoveLightning(fx, source) {
+    if (!source) {
+        fx.lightnings.length = 0;
+        return;
+    }
+    const i = fx.lightnings.indexOf(source);
+    if (i !== -1) fx.lightnings.splice(i, 1);
 }
 
 // Flash de ecran întreg — folosit pentru "scânteia mare" care dezvăluie
@@ -219,50 +236,58 @@ function fxEnsureRunning(fx, minDuration) {
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // --- programarea descărcărilor de fulger ---
-        if (fx.lightning) {
-            const L = fx.lightning;
-            if (t < L.endTime) {
-                if (t >= L.nextStrike) {
-                    const progress = (t - L.startTime) / (L.endTime - L.startTime);
-                    const strikeCount = 2 + Math.floor(progress * 5 + Math.random() * 2);
-
-                    for (let i = 0; i < strikeCount; i++) {
-                        const ox = L.originX + (Math.random() - 0.5) * 100 * progress;
-                        const oy = L.originY + (Math.random() - 0.5) * 100 * progress;
-                        const angle = Math.random() * Math.PI * 2;
-                        const len = 110 + Math.random() * (150 + progress * 140);
-                        const ex = ox + Math.cos(angle) * len;
-                        const ey = oy + Math.sin(angle) * len;
-
-                        const segments = [];
-                        buildLightningSegments(segments, ox, oy, ex, ey, 42);
-                        fx.bolts.push({
-                            segments,
-                            color: L.color,
-                            glow: L.glow,
-                            born: t,
-                            life: 90 + Math.random() * 70
-                        });
-
-                        if (Math.random() < 0.6) {
-                            fxSpawnParticles(fx, ex, ey, 3, {
-                                colors: [L.color, '#ffffff'],
-                                speed: [0.5, 2.5],
-                                life: [150, 300],
-                                size: [1, 2],
-                                gravity: 0.02
-                            });
-                        }
-                    }
-
-                    // pauza dintre descărcări scade pe măsură ce energia crește
-                    const gap = 140 - progress * 100;
-                    L.nextStrike = t + gap + Math.random() * gap * 0.6;
-                }
-            } else {
-                fx.lightning = null;
+        // --- programarea descărcărilor de fulger (pentru fiecare sursă activă) ---
+        for (let li = fx.lightnings.length - 1; li >= 0; li--) {
+            const L = fx.lightnings[li];
+            if (t >= L.endTime) {
+                fx.lightnings.splice(li, 1);
+                continue;
             }
+            if (t < L.nextStrike) continue;
+
+            let originX = L.originX;
+            let originY = L.originY;
+            if (L.followEl) {
+                const r = L.followEl.getBoundingClientRect();
+                const cr = canvas.getBoundingClientRect();
+                originX = r.left - cr.left + r.width / 2;
+                originY = r.top - cr.top + r.height / 2;
+            }
+
+            const progress = (t - L.startTime) / (L.endTime - L.startTime);
+            const strikeCount = 1 + Math.floor(progress * 3 + Math.random() * 2);
+
+            for (let i = 0; i < strikeCount; i++) {
+                const ox = originX + (Math.random() - 0.5) * L.radius * 0.3;
+                const oy = originY + (Math.random() - 0.5) * L.radius * 0.3;
+                const angle = Math.random() * Math.PI * 2;
+                const len = L.radius * (0.5 + Math.random() * 0.6 + progress * 0.3);
+                const ex = ox + Math.cos(angle) * len;
+                const ey = oy + Math.sin(angle) * len;
+
+                const segments = [];
+                buildLightningSegments(segments, ox, oy, ex, ey, Math.max(L.radius * 0.28, 18));
+                fx.bolts.push({
+                    segments,
+                    color: L.color,
+                    glow: L.glow,
+                    born: t,
+                    life: 90 + Math.random() * 70
+                });
+
+                if (Math.random() < 0.55) {
+                    fxSpawnParticles(fx, ex, ey, 2, {
+                        colors: [L.color, '#ffffff'],
+                        speed: [0.5, 2.2],
+                        life: [150, 300],
+                        size: [1, 2],
+                        gravity: 0.02
+                    });
+                }
+            }
+
+            const gap = 135 - progress * 90;
+            L.nextStrike = t + gap + Math.random() * gap * 0.6;
         }
 
         // --- desenează bolțurile de fulger, cu fade natural pe durata vieții ---
@@ -340,7 +365,7 @@ function fxEnsureRunning(fx, minDuration) {
         }
         ctx.globalAlpha = 1;
 
-        const stillActive = fx.bolts.length || fx.particles.length || fx.flashes.length || fx.lightning;
+        const stillActive = fx.bolts.length || fx.particles.length || fx.flashes.length || fx.lightnings.length;
         if (t < fx.stopAt || stillActive) {
             requestAnimationFrame(frame);
         } else {
@@ -391,9 +416,12 @@ function revealStageFromCenter(toStageName, opts = {}) {
             toStage.querySelector('.verify-container, .intro-container, .main-container, .login-container') ||
             toStage;
 
-        // masca neagră — fundalul stage-ului "se aprinde" din negru, nu apare brusc
+        // masca neagră — fundalul stage-ului "se aprinde" din negru, nu apare brusc.
+        // Durata fade-ului e sincronizată EXACT cu durata reveal-ului, altfel
+        // masca era ștearsă din DOM înainte să termine tranziția (apărea brusc).
         const mask = document.createElement('div');
         mask.className = 'reveal-fade-mask';
+        mask.style.transitionDuration = duration + 'ms';
         targetContainer.appendChild(mask);
 
         // elementul de pop (ex: cardul OTP) pornește pregătit pentru animația CSS
@@ -404,24 +432,22 @@ function revealStageFromCenter(toStageName, opts = {}) {
         }
 
         toStage.classList.add('reveal-start');
-        // forțăm reflow ca tranziția clip-path să pornească efectiv de la 0%
+        // forțăm reflow ca tranziția clip-path (și restart-ul card-pop) să
+        // pornească efectiv de la 0%
         // eslint-disable-next-line no-unused-expressions
         toStage.offsetHeight;
+
+        // Ambele fade-uri (mască + card) pornesc CHIAR ACUM, de la începutul
+        // reveal-ului — nu la jumătatea drumului. Altfel cardul era deja
+        // vizibil (opac) când cercul ajungea peste el, iar abia apoi
+        // animația de pop îl reseta brusc la invizibil și-l readucea
+        // (exact "apare, dispare, apare din nou").
+        mask.style.opacity = '0';
+        if (popEl) popEl.classList.add('card-pop');
 
         requestAnimationFrame(() => {
             toStage.classList.add('reveal-grow');
         });
-
-        // masca se stinge cam la o treime din reveal — fundalul apare "cu fade"
-        // chiar în timp ce cercul se extinde
-        setTimeout(() => {
-            mask.style.opacity = '0';
-        }, duration * 0.3);
-
-        // elementul central (cardul) apare cu spring, ușor după ce cercul l-a acoperit
-        setTimeout(() => {
-            if (popEl) popEl.classList.add('card-pop');
-        }, duration * 0.45);
 
         setTimeout(() => {
             mask.remove();
@@ -675,107 +701,120 @@ function initLoginForm() {
 // Constante de timing pentru animația 1 — ajustează liber aici dacă vrei
 // să tragi mai mult sau mai puțin de vreo fază.
 const ANIM1_TIMING = {
-    barStart: 50,        // când pornește bara spre dreapta
-    spinStart: 420,      // când încep user/parola să se rotească spre centru
-    burstStart: 1770,    // când apare UI burst-ul din centru
-    revealStart: 2050,   // când începe tranziția (iris reveal) spre verify
-    revealDuration: 1150 // durata reveal-ului propriu-zis
+    sweepStart: 50,            // când pornesc bara + panoul de login să fie "duse"
+    fadeToBlackStart: 700,     // ecranul începe fade-ul la negru (se suprapune ușor cu finalul măturării)
+    fadeToBlackDuration: 500,
+    sparkAt: 1350,             // o mică scânteie chiar înainte de reveal, pe fondul deja negru
+    revealStart: 1500,         // când începe tranziția (iris reveal) spre verify
+    revealDuration: 1150       // durata reveal-ului propriu-zis
 };
 
 // Variantă scurtată pentru prefers-reduced-motion — aceleași faze logice,
 // dar aproape instant, fără particule/shake
 const ANIM1_TIMING_REDUCED = {
-    barStart: 0,
-    spinStart: 60,
-    burstStart: 160,
-    revealStart: 260,
+    sweepStart: 0,
+    fadeToBlackStart: 120,
+    fadeToBlackDuration: 150,
+    sparkAt: 280,
+    revealStart: 300,
     revealDuration: 350
 };
 
 // ============================================================
-//  ANIMAȚIA 1 — bară + rotire spre centru + UI burst + reveal continuu
+//  ANIMAȚIA 1 — bara reală "prinde" panoul de login și îl duce,
+//  apoi ecranul face fade la negru, apoi reveal continuu spre verify
 // ============================================================
 //
-// Spre deosebire de o variantă cu fade-out separat + schimbare bruscă de
-// stage, aici UI burst-ul declanșează direct un "iris reveal": stage-ul
-// de verify crește dintr-un cerc exact din punctul burst-ului, acoperind
-// treptat ecranul, cu propriul fundal apărând cu fade din negru și
-// cardul OTP apărând cu un mic spring — totul ca O SINGURĂ tranziție
-// continuă, nu două animații lipite.
+// Spre deosebire de o variantă cu text abstract care zboară spre centru,
+// aici sunt animate elementele REALE din pagină: bara oblică (.divider)
+// și dreptunghiul cu formularul (.login-form-wrapper, cu username/parola
+// vizibile în el) sunt "duse" împreună spre dreapta, ca și cum bara le-ar
+// prinde și le-ar căra cu ea. Abia DUPĂ ce ies din ecran, totul face fade
+// la negru — nu instant — și apoi verify apare printr-un iris reveal.
 function playAnimation1(username, password) {
     return new Promise(async (resolve) => {
         const T = REDUCE_MOTION ? ANIM1_TIMING_REDUCED : ANIM1_TIMING;
         const anim1 = document.getElementById('anim1');
-        const bar = document.getElementById('anim1-bar');
-        const userEl = document.getElementById('anim1-user');
-        const passEl = document.getElementById('anim1-pass');
         const uiBurst = document.getElementById('anim1-ui-burst');
+        const divider = document.querySelector('.divider');
+        const formWrapper = document.querySelector('.login-form-wrapper');
 
-        userEl.textContent = username;
-        passEl.textContent = '••••••••';
+        // elementele vechi (bară/text clonate) din #anim1 nu mai sunt
+        // folosite în noul design — le neutralizăm ca să nu rămână vizibile
+        // peste ecranul negru
+        const oldBar = document.getElementById('anim1-bar');
+        const oldUser = document.getElementById('anim1-user');
+        const oldPass = document.getElementById('anim1-pass');
+        if (oldBar) oldBar.style.display = 'none';
+        if (oldUser) oldUser.style.display = 'none';
+        if (oldPass) oldPass.style.display = 'none';
 
-        anim1.classList.remove('hidden');
-        anim1.style.opacity = '1';
         uiBurst.classList.remove('active');
+        anim1.classList.remove('visible');
+        anim1.classList.add('hidden'); // rămâne ascuns până la fade-to-black
 
-        // FX: runtime unificat de particule peste tot anim1-ul (omis la reduced-motion)
-        const canvas = REDUCE_MOTION ? null : createFxCanvas(anim1);
-        const ctx = canvas ? canvas.getContext('2d') : null;
-        const fx = canvas ? createFxRuntime(canvas, ctx) : null;
-        if (fx) fxEnsureRunning(fx, T.revealStart + 1200);
+        // FX: runtime unificat de particule, folosit pentru scânteia de la final
+        let canvas = null;
+        let ctx = null;
+        let fxRuntime = null;
+        if (!REDUCE_MOTION) {
+            canvas = createFxCanvas(anim1);
+            ctx = canvas.getContext('2d');
+            fxRuntime = createFxRuntime(canvas, ctx);
+        }
 
-        // Faza 1: bara se mișcă COMPLET spre dreapta, cu scântei care se
-        // desprind din ea (efect de "friction spark")
+        // Faza 1: bara + panoul de login sunt "duse" spre dreapta, împreună
         setTimeout(() => {
-            bar.classList.add('move-right');
-            playSound('sfx-whoosh', 0.4);
-            if (fx) {
-                fxSpawnParticles(fx, canvas.width * 0.4, canvas.height * 0.5, 18, {
-                    colors: ['#ffd700', '#fff2b0'],
-                    speed: [3, 9],
-                    life: [300, 600],
-                    spread: Math.PI * 0.6,
-                    angleOffset: 0
-                });
-            }
-        }, T.barStart);
+            if (divider) divider.classList.add('sweep-out');
+            if (formWrapper) formWrapper.classList.add('swept-away');
+            playSound('sfx-whoosh', 0.5);
+        }, T.sweepStart);
 
-        // Faza 2: user + parola se rotesc și merg în centru (spring/overshoot)
+        // Faza 2: ecranul face fade la negru (nu instant) — se suprapune
+        // ușor cu finalul măturării, pentru o tranziție lină
         setTimeout(() => {
-            userEl.classList.add('spinning');
-            passEl.classList.add('spinning');
-        }, T.spinStart);
+            anim1.classList.remove('hidden');
+            anim1.classList.remove('visible');
+            // eslint-disable-next-line no-unused-expressions
+            anim1.offsetHeight; // forțăm reflow ca tranziția să pornească de la opacity 0
+            requestAnimationFrame(() => anim1.classList.add('visible'));
+        }, T.fadeToBlackStart);
 
-        // Faza 3: UI BURST (explozie din centru) + shake + particule radiale
+        // Faza 3: o mică scânteie pe fondul deja negru, chiar înainte de reveal
         setTimeout(() => {
             uiBurst.classList.add('active');
             playSound('sfx-whoosh', 0.6);
-            if (!REDUCE_MOTION) screenShake(anim1, 350);
-            if (fx) {
-                fxSpawnParticles(fx, canvas.width / 2, canvas.height / 2, 45, {
+            if (fxRuntime) {
+                fxRuntime.canvas.width = anim1.clientWidth;
+                fxRuntime.canvas.height = anim1.clientHeight;
+                fxSpawnParticles(fxRuntime, fxRuntime.canvas.width / 2, fxRuntime.canvas.height / 2, 35, {
                     colors: ['#ffd700', '#ffffff', '#ff8c00'],
-                    speed: [3, 11],
-                    life: [500, 950],
-                    size: [1.5, 4]
+                    speed: [2, 8],
+                    life: [400, 750],
+                    size: [1.5, 3.5]
                 });
+                fxEnsureRunning(fxRuntime, 800);
             }
-        }, T.burstStart);
+        }, T.sparkAt);
 
-        // Faza 4: burst-ul "crește" direct în verify — o singură tranziție,
-        // fără fade-out separat al anim1-ului
+        // Faza 4: reveal continuu spre verify (bug-fixat: fade de fundal +
+        // card-pop pornesc corect, fără flicker dublu)
         setTimeout(async () => {
             await revealStageFromCenter('verify', {
                 duration: T.revealDuration,
                 popSelector: '.otp-card'
             });
 
-            // acum verify e complet vizibil deasupra — curățăm anim1 în liniște
+            // curățăm și resetăm totul în liniște, pentru un eventual login ulterior
             anim1.classList.add('hidden');
-            bar.classList.remove('move-right');
-            userEl.classList.remove('spinning');
-            passEl.classList.remove('spinning');
+            anim1.classList.remove('visible');
             uiBurst.classList.remove('active');
-            destroyFxCanvas(canvas);
+            if (divider) divider.classList.remove('sweep-out');
+            if (formWrapper) formWrapper.classList.remove('swept-away');
+            if (oldBar) oldBar.style.display = '';
+            if (oldUser) oldUser.style.display = '';
+            if (oldPass) oldPass.style.display = '';
+            if (canvas) destroyFxCanvas(canvas);
             resolve();
         }, T.revealStart);
     });
