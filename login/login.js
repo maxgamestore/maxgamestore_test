@@ -106,8 +106,53 @@ function destroyFxCanvas(canvas) {
     canvas.remove();
 }
 
-// Adaugă particule noi într-o listă existentă (array simplu de obiecte)
-function spawnParticles(list, x, y, count, opts = {}) {
+// ============================================================
+//  FX RUNTIME — un singur "motor" per canvas care rulează particule,
+//  fulgere și flash-uri de ecran ÎN ACEEAȘI buclă requestAnimationFrame.
+//
+//  De ce nu 3 bucle separate? Pentru că fiecare buclă independentă
+//  făcea propriul ctx.clearRect() — rulând simultan, se șterg una
+//  pe alta la desenare (o cursă/"race" între ele). Cu un singur
+//  loop care curăță o dată pe cadru și desenează totul în ordine,
+//  dispare acel bug, iar bolțurile de fulger pot acum să pălească
+//  natural în timp, nu doar să dispară brusc la următorul cadru.
+// ============================================================
+function createFxRuntime(canvas, ctx) {
+    return {
+        canvas, ctx,
+        particles: [],
+        bolts: [],
+        flashes: [],
+        lightning: null,
+        lastT: null,
+        stopAt: 0,
+        running: false
+    };
+}
+
+// Fulger procedural (midpoint-displacement): construiește DOAR geometria
+// (segmente de linie), fără să deseneze — desenarea (cu fade) se face
+// în bucla unificată, ca să poată controla opacitatea în timp.
+function buildLightningSegments(segs, x1, y1, x2, y2, displace, depth = 0) {
+    if (displace < 6 || depth > 6) {
+        segs.push({ x1, y1, x2, y2, width: Math.max(3 - depth * 0.4, 0.6) });
+
+        // ramură ocazională
+        if (Math.random() < 0.18 && depth < 4) {
+            const bx = x2 + (Math.random() - 0.5) * 60;
+            const by = y2 + (Math.random() - 0.5) * 60;
+            buildLightningSegments(segs, x2, y2, bx, by, displace * 0.5, depth + 2);
+        }
+        return;
+    }
+    const mx = (x1 + x2) / 2 + (Math.random() - 0.5) * displace;
+    const my = (y1 + y2) / 2 + (Math.random() - 0.5) * displace;
+    buildLightningSegments(segs, x1, y1, mx, my, displace / 2, depth + 1);
+    buildLightningSegments(segs, mx, my, x2, y2, displace / 2, depth + 1);
+}
+
+// Adaugă particule noi în runtime-ul FX
+function fxSpawnParticles(fx, x, y, count, opts = {}) {
     const {
         colors = ['#ffd700', '#ffffff'],
         speed = [2, 6],
@@ -121,7 +166,7 @@ function spawnParticles(list, x, y, count, opts = {}) {
     for (let i = 0; i < count; i++) {
         const angle = angleOffset + (Math.random() - 0.5) * spread;
         const spd = speed[0] + Math.random() * (speed[1] - speed[0]);
-        list.push({
+        fx.particles.push({
             x, y,
             vx: Math.cos(angle) * spd,
             vy: Math.sin(angle) * spd,
@@ -134,22 +179,135 @@ function spawnParticles(list, x, y, count, opts = {}) {
     }
 }
 
-// Rulează bucla de update/desenare pentru o listă de particule.
-// Se oprește după `duration` ms SAU când toate particulele au murit.
-function runParticleLoop(canvas, ctx, particles, duration) {
-    const start = performance.now();
-    let lastT = start;
+// Pornește/actualizează o "sursă" de fulgere care se acumulează progresiv:
+// intensitatea (nr. de descărcări, lungimea lor, cât de des apar) CREȘTE
+// spre finalul duratei — se simte ca o acumulare de energie, nu un
+// flicker constant.
+function fxSetLightning(fx, originX, originY, duration, color, glow) {
+    const now = performance.now();
+    fx.lightning = {
+        originX, originY, color, glow,
+        startTime: now,
+        endTime: now + duration,
+        nextStrike: 0
+    };
+}
+
+function fxClearLightning(fx) {
+    fx.lightning = null;
+}
+
+// Flash de ecran întreg — folosit pentru "scânteia mare" care dezvăluie
+// rezultatul (verde/roșu) după faza de acumulare albastră
+function fxFlash(fx, color, life = 350) {
+    fx.flashes.push({ color, born: performance.now(), life });
+}
+
+// Pornește (sau prelungește) bucla unificată. Poate fi apelată de mai
+// multe ori în timpul aceleiași animații — extinde doar durata minimă.
+function fxEnsureRunning(fx, minDuration) {
+    fx.stopAt = Math.max(fx.stopAt, performance.now() + minDuration);
+    if (fx.running) return;
+
+    fx.running = true;
+    fx.lastT = performance.now();
 
     function frame(t) {
-        const dt = t - lastT;
-        lastT = t;
+        const dt = t - fx.lastT;
+        fx.lastT = t;
+        const { ctx, canvas } = fx;
+
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        for (let i = particles.length - 1; i >= 0; i--) {
-            const p = particles[i];
+        // --- programarea descărcărilor de fulger ---
+        if (fx.lightning) {
+            const L = fx.lightning;
+            if (t < L.endTime) {
+                if (t >= L.nextStrike) {
+                    const progress = (t - L.startTime) / (L.endTime - L.startTime);
+                    const strikeCount = 2 + Math.floor(progress * 5 + Math.random() * 2);
+
+                    for (let i = 0; i < strikeCount; i++) {
+                        const ox = L.originX + (Math.random() - 0.5) * 100 * progress;
+                        const oy = L.originY + (Math.random() - 0.5) * 100 * progress;
+                        const angle = Math.random() * Math.PI * 2;
+                        const len = 110 + Math.random() * (150 + progress * 140);
+                        const ex = ox + Math.cos(angle) * len;
+                        const ey = oy + Math.sin(angle) * len;
+
+                        const segments = [];
+                        buildLightningSegments(segments, ox, oy, ex, ey, 42);
+                        fx.bolts.push({
+                            segments,
+                            color: L.color,
+                            glow: L.glow,
+                            born: t,
+                            life: 90 + Math.random() * 70
+                        });
+
+                        if (Math.random() < 0.6) {
+                            fxSpawnParticles(fx, ex, ey, 3, {
+                                colors: [L.color, '#ffffff'],
+                                speed: [0.5, 2.5],
+                                life: [150, 300],
+                                size: [1, 2],
+                                gravity: 0.02
+                            });
+                        }
+                    }
+
+                    // pauza dintre descărcări scade pe măsură ce energia crește
+                    const gap = 140 - progress * 100;
+                    L.nextStrike = t + gap + Math.random() * gap * 0.6;
+                }
+            } else {
+                fx.lightning = null;
+            }
+        }
+
+        // --- desenează bolțurile de fulger, cu fade natural pe durata vieții ---
+        for (let i = fx.bolts.length - 1; i >= 0; i--) {
+            const b = fx.bolts[i];
+            const age = t - b.born;
+            if (age >= b.life) {
+                fx.bolts.splice(i, 1);
+                continue;
+            }
+            const alpha = 1 - age / b.life;
+
+            ctx.globalAlpha = alpha;
+            ctx.shadowBlur = 14;
+            ctx.shadowColor = b.glow;
+            ctx.strokeStyle = b.color;
+            for (const s of b.segments) {
+                ctx.lineWidth = s.width;
+                ctx.beginPath();
+                ctx.moveTo(s.x1, s.y1);
+                ctx.lineTo(s.x2, s.y2);
+                ctx.stroke();
+            }
+
+            // miez alb fierbinte, suprapus
+            ctx.globalAlpha = alpha * 0.55;
+            ctx.shadowColor = '#ffffff';
+            ctx.strokeStyle = '#ffffff';
+            for (const s of b.segments) {
+                ctx.lineWidth = Math.max(s.width * 0.5, 0.6);
+                ctx.beginPath();
+                ctx.moveTo(s.x1, s.y1);
+                ctx.lineTo(s.x2, s.y2);
+                ctx.stroke();
+            }
+        }
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+
+        // --- particule ---
+        for (let i = fx.particles.length - 1; i >= 0; i--) {
+            const p = fx.particles[i];
             p.age += dt;
             if (p.age >= p.life) {
-                particles.splice(i, 1);
+                fx.particles.splice(i, 1);
                 continue;
             }
             p.vy += p.gravity;
@@ -168,96 +326,27 @@ function runParticleLoop(canvas, ctx, particles, duration) {
         ctx.globalAlpha = 1;
         ctx.shadowBlur = 0;
 
-        if (t - start < duration || particles.length > 0) {
+        // --- flash-uri pe tot ecranul (scânteia mare) ---
+        for (let i = fx.flashes.length - 1; i >= 0; i--) {
+            const f = fx.flashes[i];
+            const age = t - f.born;
+            if (age >= f.life) {
+                fx.flashes.splice(i, 1);
+                continue;
+            }
+            ctx.globalAlpha = Math.pow(1 - age / f.life, 2); // fade rapid la final
+            ctx.fillStyle = f.color;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        ctx.globalAlpha = 1;
+
+        const stillActive = fx.bolts.length || fx.particles.length || fx.flashes.length || fx.lightning;
+        if (t < fx.stopAt || stillActive) {
             requestAnimationFrame(frame);
         } else {
+            fx.running = false;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
-    }
-    requestAnimationFrame(frame);
-}
-
-// Fulger procedural (midpoint-displacement) — arată jagged & organic,
-// cu ramificații ocazionale, spre deosebire de bara CSS dreaptă
-function drawLightningSegment(ctx, x1, y1, x2, y2, displace, color, glow, depth = 0) {
-    if (displace < 6 || depth > 6) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = color;
-        ctx.shadowColor = glow;
-        ctx.shadowBlur = 14;
-        ctx.lineWidth = Math.max(3 - depth * 0.4, 0.6);
-        ctx.stroke();
-
-        // ramură ocazională
-        if (Math.random() < 0.18 && depth < 4) {
-            const bx = x2 + (Math.random() - 0.5) * 60;
-            const by = y2 + (Math.random() - 0.5) * 60;
-            drawLightningSegment(ctx, x2, y2, bx, by, displace * 0.5, color, glow, depth + 2);
-        }
-        return;
-    }
-    const mx = (x1 + x2) / 2 + (Math.random() - 0.5) * displace;
-    const my = (y1 + y2) / 2 + (Math.random() - 0.5) * displace;
-    drawLightningSegment(ctx, x1, y1, mx, my, displace / 2, color, glow, depth + 1);
-    drawLightningSegment(ctx, mx, my, x2, y2, displace / 2, color, glow, depth + 1);
-}
-
-// Rulează fulgere repetate dintr-o zonă de origine, pentru `duration` ms.
-// Intensitatea CREȘTE progresiv spre finalul duratei (mai multe descărcări,
-// mai lungi, mai dese) — se simte ca o acumulare de energie, nu un flicker
-// constant. Fiecare fulger are și un miez alb suprapus (hot core) și poate
-// arunca scântei la capete dacă i se dă un array de particule.
-function runLightningLoop(canvas, ctx, originX, originY, duration, color = '#00ff88', glow = '#00ff88', particles = null) {
-    const start = performance.now();
-    let nextStrike = 0;
-
-    function frame(t) {
-        const elapsed = t - start;
-        if (elapsed > duration) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            return;
-        }
-        if (t >= nextStrike) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            const progress = elapsed / duration; // 0 -> 1, energia crește spre final
-            const strikeCount = 2 + Math.floor(progress * 5 + Math.random() * 2);
-
-            for (let i = 0; i < strikeCount; i++) {
-                const ox = originX + (Math.random() - 0.5) * 100 * progress;
-                const oy = originY + (Math.random() - 0.5) * 100 * progress;
-                const angle = Math.random() * Math.PI * 2;
-                const len = 110 + Math.random() * (150 + progress * 140);
-                const ex = ox + Math.cos(angle) * len;
-                const ey = oy + Math.sin(angle) * len;
-
-                drawLightningSegment(ctx, ox, oy, ex, ey, 42, color, glow);
-
-                // miez alb fierbinte, suprapus peste bolțul colorat
-                ctx.save();
-                ctx.globalAlpha = 0.55;
-                drawLightningSegment(ctx, ox, oy, ex, ey, 22, '#ffffff', '#ffffff', 3);
-                ctx.restore();
-
-                // scântei la capătul bolțului
-                if (particles && Math.random() < 0.6) {
-                    spawnParticles(particles, ex, ey, 3, {
-                        colors: [color, '#ffffff'],
-                        speed: [0.5, 2.5],
-                        life: [150, 300],
-                        size: [1, 2],
-                        gravity: 0.02
-                    });
-                }
-            }
-
-            // pauza dintre descărcări scade pe măsură ce energia crește (0.14s -> 0.04s)
-            const gap = 140 - progress * 100;
-            nextStrike = t + gap + Math.random() * gap * 0.6;
-        }
-        requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
 }
@@ -629,19 +718,19 @@ function playAnimation1(username, password) {
         anim1.style.opacity = '1';
         uiBurst.classList.remove('active');
 
-        // FX: canvas de particule peste tot anim1-ul (omis complet la reduced-motion)
+        // FX: runtime unificat de particule peste tot anim1-ul (omis la reduced-motion)
         const canvas = REDUCE_MOTION ? null : createFxCanvas(anim1);
         const ctx = canvas ? canvas.getContext('2d') : null;
-        const particles = [];
-        if (canvas) runParticleLoop(canvas, ctx, particles, T.revealStart + 1200);
+        const fx = canvas ? createFxRuntime(canvas, ctx) : null;
+        if (fx) fxEnsureRunning(fx, T.revealStart + 1200);
 
         // Faza 1: bara se mișcă COMPLET spre dreapta, cu scântei care se
         // desprind din ea (efect de "friction spark")
         setTimeout(() => {
             bar.classList.add('move-right');
             playSound('sfx-whoosh', 0.4);
-            if (canvas) {
-                spawnParticles(particles, canvas.width * 0.4, canvas.height * 0.5, 18, {
+            if (fx) {
+                fxSpawnParticles(fx, canvas.width * 0.4, canvas.height * 0.5, 18, {
                     colors: ['#ffd700', '#fff2b0'],
                     speed: [3, 9],
                     life: [300, 600],
@@ -662,8 +751,8 @@ function playAnimation1(username, password) {
             uiBurst.classList.add('active');
             playSound('sfx-whoosh', 0.6);
             if (!REDUCE_MOTION) screenShake(anim1, 350);
-            if (canvas) {
-                spawnParticles(particles, canvas.width / 2, canvas.height / 2, 45, {
+            if (fx) {
+                fxSpawnParticles(fx, canvas.width / 2, canvas.height / 2, 45, {
                     colors: ['#ffd700', '#ffffff', '#ff8c00'],
                     speed: [3, 11],
                     life: [500, 950],
@@ -688,7 +777,7 @@ function playAnimation1(username, password) {
             uiBurst.classList.remove('active');
             destroyFxCanvas(canvas);
             resolve();
-        }, ANIM1_TIMING.revealStart);
+        }, T.revealStart);
     });
 }
 
@@ -859,25 +948,27 @@ function initOTPButtons() {
 // Constante de timing pentru animația 2 — ajustează liber aici dacă vrei
 // s-o faci și mai lungă/spectaculoasă. `electricityDuration` controlează
 // direct cât ține acumularea de fulgere înainte de explozie.
+// Faza de electricitate ALBASTRĂ e comună — indiferent dacă răspunsul
+// e corect sau nu, userul nu știe încă rezultatul în acest interval.
+// Abia la "scânteia mare" (sparkOffset) se dezvăluie culoarea reală.
 const ANIM2_TIMING = {
+    fadeStart: 100,
+    electricityStart: 350,
+    electricityDuration: 5000,   // ~5s de "verificare" — cerut explicit, culoare albastră
+    intensifyOffset: 3900,       // relativ la electricityStart — ultima ~1.1s, mai violentă
+    sparkOffset: 150,            // scânteia mare vine puțin după finalul fazei albastre
+    revealColorDuration: 550,    // cât ține electricitatea deja colorată (verde/roșu), înainte de explozie
     success: {
-        fadeStart: 100,
-        electricityStart: 350,
-        electricityDuration: 2000,   // cât "se acumulează" energia înainte de explozie
-        intensifyOffset: 1050,       // relativ la electricityStart — ultima parte, mai violentă
-        explosionOffset: 100,        // relativ la finalul electricității
-        vortexOffset: 900,           // relativ la explozie
+        explosionOffset: 150,    // relativ la finalul fazei colorate
+        vortexOffset: 900,
         vortexDuration: 4000,
-        textOffset: 900,             // relativ la finalul vortexului
+        textOffset: 900,
         textDuration: 7000
     },
     fail: {
-        fadeStart: 100,
-        electricityStart: 400,
-        electricityDuration: 1600,
-        explosionOffset: 100,
-        errorOffset: 900,            // relativ la explozie
-        endOffset: 1500              // relativ la eroare
+        explosionOffset: 150,
+        errorOffset: 900,
+        endOffset: 1500
     }
 };
 
@@ -927,7 +1018,9 @@ function playAnimation2Reduced(isSuccess) {
 }
 
 // ============================================================
-//  ANIMAȚIA 2 — electricitate + explozie + vortex + rotire + text
+//  ANIMAȚIA 2 — electricitate ALBASTRĂ (verificare) → scânteie mare
+//  care dezvăluie rezultatul (verde/roșu) → explozie + vortex/rotire
+//  (succes) sau explozie + eroare (eșec)
 // ============================================================
 function playAnimation2(isSuccess) {
     if (REDUCE_MOTION) return playAnimation2Reduced(isSuccess);
@@ -942,63 +1035,89 @@ function playAnimation2(isSuccess) {
         // Reset
         container.classList.remove('rotating', 'fade-out-bg');
         container.style.transform = '';
-        electricity.classList.remove('active', 'red', 'intensify');
+        electricity.classList.remove('active', 'red', 'blue', 'intensify');
         explosion.classList.remove('active', 'red');
         vortex.classList.remove('active');
         vortex.style.top = '';
         vortex.style.left = '';
         text.classList.remove('active');
 
-        // FX: canvas de particule + fulgere peste tot intro-container-ul
+        // FX: runtime unificat de particule + fulgere peste tot intro-container-ul
         const canvas = createFxCanvas(container);
         const ctx = canvas.getContext('2d');
-        const particles = [];
+        const fx = createFxRuntime(canvas, ctx);
         const cx = () => canvas.width / 2;
         const cy = () => canvas.height / 2;
 
+        const T = ANIM2_TIMING;
+        const resultColor = isSuccess ? '#00ff88' : '#ff0044';
+        const sparkTime = T.electricityStart + T.electricityDuration + T.sparkOffset;
+        const coloredEnd = sparkTime + T.revealColorDuration;
+
+        // Faza 1: Fade out background
+        setTimeout(() => container.classList.add('fade-out-bg'), T.fadeStart);
+
+        // Faza 2: Electricitate ALBASTRĂ — faza de "verificare" (~5s),
+        // identică indiferent de rezultat, ca userul să nu știe încă răspunsul
+        setTimeout(() => {
+            randomizeLightningBolts();
+            electricity.classList.add('active', 'blue');
+            playSound('sfx-electric', 0.8);
+            fxSetLightning(fx, cx(), cy(), T.electricityDuration, '#33aaff', '#33aaff');
+            fxEnsureRunning(fx, T.electricityDuration + 300);
+        }, T.electricityStart);
+
+        // ultima ~1.1s din faza albastră devine mai intensă — anticipație
+        setTimeout(() => {
+            electricity.classList.add('intensify');
+        }, T.electricityStart + T.intensifyOffset);
+
+        // Faza 3: SCÂNTEIA MARE — flash alb pe tot ecranul, care dezvăluie
+        // culoarea reală (verde = corect, roșu = greșit)
+        setTimeout(() => {
+            stopSound('sfx-electric');
+            electricity.classList.remove('blue', 'intensify');
+            if (!isSuccess) electricity.classList.add('red'); // succesul rămâne pe verde (culoarea implicită)
+
+            fxClearLightning(fx);
+            fxFlash(fx, '#ffffff', 380);
+            fxSpawnParticles(fx, cx(), cy(), 40, {
+                colors: ['#ffffff', resultColor],
+                speed: [3, 10],
+                life: [300, 550],
+                size: [1.5, 3.5]
+            });
+            playSound('sfx-whoosh', 0.7);
+            if (!REDUCE_MOTION) screenShake(container, 300);
+
+            // scurtă rafală de electricitate deja colorată, înainte de explozie
+            fxSetLightning(fx, cx(), cy(), T.revealColorDuration, resultColor, resultColor);
+            fxEnsureRunning(fx, T.revealColorDuration + 200);
+        }, sparkTime);
+
         if (isSuccess) {
-            const T = ANIM2_TIMING.success;
-            const explosionStart = T.electricityStart + T.electricityDuration + T.explosionOffset;
-            const vortexStart = explosionStart + T.vortexOffset;
-            const textStart = vortexStart + T.vortexDuration + T.textOffset;
-            const endTime = textStart + T.textDuration;
+            const S = T.success;
+            const explosionStart = coloredEnd + S.explosionOffset;
+            const vortexStart = explosionStart + S.vortexOffset;
+            const textStart = vortexStart + S.vortexDuration + S.textOffset;
+            const endTime = textStart + S.textDuration;
 
-            // ===== COD CORECT - VERDE =====
-
-            // Faza 1: Fade out background
-            setTimeout(() => container.classList.add('fade-out-bg'), T.fadeStart);
-
-            // Faza 2: Electricitate — acumulare progresivă (CSS wiggle + fulgere pe canvas)
+            // Faza 4: Explozie MARE (verde)
             setTimeout(() => {
-                randomizeLightningBolts();
-                electricity.classList.add('active');
-                playSound('sfx-electric', 0.9);
-                runLightningLoop(canvas, ctx, cx(), cy(), T.electricityDuration, '#00ff88', '#00ff88', particles);
-                runParticleLoop(canvas, ctx, particles, T.electricityDuration + 300);
-            }, T.electricityStart);
-
-            // ultima parte a electricității devine mult mai violentă
-            setTimeout(() => {
-                electricity.classList.add('intensify');
-            }, T.electricityStart + T.intensifyOffset);
-
-            // Faza 3: Explozie MARE
-            setTimeout(() => {
-                stopSound('sfx-electric');
-                electricity.classList.remove('active', 'intensify');
+                electricity.classList.remove('active');
                 explosion.classList.add('active');
                 playSound('sfx-explosion', 1.0);
                 screenShake(container, 450);
-                spawnParticles(particles, cx(), cy(), 80, {
+                fxSpawnParticles(fx, cx(), cy(), 80, {
                     colors: ['#ffffff', '#00ff88', '#7dffc0'],
                     speed: [4, 15],
                     life: [600, 1150],
                     size: [1.5, 4.5]
                 });
-                runParticleLoop(canvas, ctx, particles, 1200);
+                fxEnsureRunning(fx, 1200);
             }, explosionStart);
 
-            // Faza 4: Vortex într-o ZONĂ ALEATORIE + rotire ecran completă
+            // Faza 5: Vortex într-o ZONĂ ALEATORIE + rotire ecran completă
             setTimeout(() => {
                 explosion.classList.remove('active');
 
@@ -1015,18 +1134,17 @@ function playAnimation2(isSuccess) {
                 // particule aspirate spre punctul vortexului
                 const vx = (randomX / 100) * canvas.width;
                 const vy = (randomY / 100) * canvas.height;
-                const swirlParticles = [];
-                spawnParticles(swirlParticles, vx, vy, 55, {
+                fxSpawnParticles(fx, vx, vy, 55, {
                     colors: ['#00ff88', '#ffffff'],
                     speed: [0.5, 1.5],
                     life: [2600, 3600],
                     size: [1, 3],
                     gravity: 0
                 });
-                runParticleLoop(canvas, ctx, swirlParticles, T.vortexDuration);
+                fxEnsureRunning(fx, S.vortexDuration);
             }, vortexStart);
 
-            // Faza 5: Reset + text MAXGAMESTORE cu scântei ambientale
+            // Faza 6: Reset + text MAXGAMESTORE cu scântei ambientale
             setTimeout(() => {
                 container.classList.remove('rotating', 'fade-out-bg');
                 container.style.transform = '';
@@ -1038,7 +1156,7 @@ function playAnimation2(isSuccess) {
                 playSound('sfx-electric-long', 0.7);
 
                 const sparkInterval = setInterval(() => {
-                    spawnParticles(particles, cx() + (Math.random() - 0.5) * 400, cy() + (Math.random() - 0.5) * 120, 4, {
+                    fxSpawnParticles(fx, cx() + (Math.random() - 0.5) * 400, cy() + (Math.random() - 0.5) * 120, 4, {
                         colors: ['#ffd700', '#ffffff'],
                         speed: [0.5, 2],
                         life: [300, 600],
@@ -1047,10 +1165,10 @@ function playAnimation2(isSuccess) {
                     });
                 }, 250);
                 canvas._sparkInterval = sparkInterval;
-                runParticleLoop(canvas, ctx, particles, T.textDuration - 100);
+                fxEnsureRunning(fx, S.textDuration - 100);
             }, textStart);
 
-            // Faza 6: Final
+            // Faza 7: Final
             setTimeout(() => {
                 clearInterval(canvas._sparkInterval);
                 text.classList.remove('active');
@@ -1061,36 +1179,24 @@ function playAnimation2(isSuccess) {
             }, endTime);
 
         } else {
-            const T = ANIM2_TIMING.fail;
-            const explosionStart = T.electricityStart + T.electricityDuration + T.explosionOffset;
-            const errorStart = explosionStart + T.errorOffset;
-            const endTime = errorStart + T.endOffset;
+            const F = T.fail;
+            const explosionStart = coloredEnd + F.explosionOffset;
+            const errorStart = explosionStart + F.errorOffset;
+            const endTime = errorStart + F.endOffset;
 
-            // ===== COD GREȘIT - ROȘU =====
-
-            setTimeout(() => container.classList.add('fade-out-bg'), T.fadeStart);
-
+            // Faza 4: Explozie MARE (roșie)
             setTimeout(() => {
-                randomizeLightningBolts();
-                electricity.classList.add('active', 'red');
-                playSound('sfx-electric', 0.9);
-                runLightningLoop(canvas, ctx, cx(), cy(), T.electricityDuration, '#ff0044', '#ff0044', particles);
-                runParticleLoop(canvas, ctx, particles, T.electricityDuration + 300);
-            }, T.electricityStart);
-
-            setTimeout(() => {
-                stopSound('sfx-electric');
                 electricity.classList.remove('active', 'red');
                 explosion.classList.add('active', 'red');
                 playSound('sfx-explosion', 1.0);
                 screenShake(container, 400);
-                spawnParticles(particles, cx(), cy(), 45, {
+                fxSpawnParticles(fx, cx(), cy(), 45, {
                     colors: ['#ff0044', '#ffffff', '#ff5577'],
                     speed: [3, 10],
                     life: [400, 800],
                     size: [1.5, 4]
                 });
-                runParticleLoop(canvas, ctx, particles, 1000);
+                fxEnsureRunning(fx, 1000);
             }, explosionStart);
 
             setTimeout(() => playSound('sfx-error', 0.7), errorStart);
