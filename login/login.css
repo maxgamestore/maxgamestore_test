@@ -22,6 +22,8 @@
     --success-glow: rgba(0, 255, 136, 0.6);
     --error: #ff0044;
     --error-glow: rgba(255, 0, 68, 0.6);
+    --info: #33aaff;
+    --info-glow: rgba(51, 170, 255, 0.5);
     --purple: #6a0dad;
     --transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -852,6 +854,23 @@ html, body {
         0 0 20px var(--error),
         0 0 40px var(--error),
         0 0 80px var(--error-glow);
+}
+
+/* fază de "verificare" — albastru, neutru, nu dezvăluie încă rezultatul */
+.intro-electricity.blue .lightning {
+    background: linear-gradient(
+        180deg,
+        transparent 0%,
+        var(--info) 20%,
+        #aee0ff 50%,
+        var(--info) 80%,
+        transparent 100%
+    );
+    box-shadow:
+        0 0 10px var(--info),
+        0 0 20px var(--info),
+        0 0 40px var(--info),
+        0 0 80px var(--info-glow);
 }
 
 /* fază finală de "intensify" — flicker + wiggle mult mai rapide și mai strălucitoare */
