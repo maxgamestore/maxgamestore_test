@@ -179,27 +179,58 @@ function drawLightningSegment(ctx, x1, y1, x2, y2, displace, color, glow, depth 
     drawLightningSegment(ctx, mx, my, x2, y2, displace / 2, color, glow, depth + 1);
 }
 
-// Rulează fulgere repetate dintr-un punct de origine, pentru `duration` ms
-function runLightningLoop(canvas, ctx, originX, originY, duration, color = '#00ff88', glow = '#00ff88') {
+// Rulează fulgere repetate dintr-o zonă de origine, pentru `duration` ms.
+// Intensitatea CREȘTE progresiv spre finalul duratei (mai multe descărcări,
+// mai lungi, mai dese) — se simte ca o acumulare de energie, nu un flicker
+// constant. Fiecare fulger are și un miez alb suprapus (hot core) și poate
+// arunca scântei la capete dacă i se dă un array de particule.
+function runLightningLoop(canvas, ctx, originX, originY, duration, color = '#00ff88', glow = '#00ff88', particles = null) {
     const start = performance.now();
     let nextStrike = 0;
 
     function frame(t) {
-        if (t - start > duration) {
+        const elapsed = t - start;
+        if (elapsed > duration) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             return;
         }
         if (t >= nextStrike) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const strikes = 2 + Math.floor(Math.random() * 3);
-            for (let i = 0; i < strikes; i++) {
+
+            const progress = elapsed / duration; // 0 -> 1, energia crește spre final
+            const strikeCount = 2 + Math.floor(progress * 5 + Math.random() * 2);
+
+            for (let i = 0; i < strikeCount; i++) {
+                const ox = originX + (Math.random() - 0.5) * 100 * progress;
+                const oy = originY + (Math.random() - 0.5) * 100 * progress;
                 const angle = Math.random() * Math.PI * 2;
-                const len = 120 + Math.random() * 160;
-                const ex = originX + Math.cos(angle) * len;
-                const ey = originY + Math.sin(angle) * len;
-                drawLightningSegment(ctx, originX, originY, ex, ey, 40, color, glow);
+                const len = 110 + Math.random() * (150 + progress * 140);
+                const ex = ox + Math.cos(angle) * len;
+                const ey = oy + Math.sin(angle) * len;
+
+                drawLightningSegment(ctx, ox, oy, ex, ey, 42, color, glow);
+
+                // miez alb fierbinte, suprapus peste bolțul colorat
+                ctx.save();
+                ctx.globalAlpha = 0.55;
+                drawLightningSegment(ctx, ox, oy, ex, ey, 22, '#ffffff', '#ffffff', 3);
+                ctx.restore();
+
+                // scântei la capătul bolțului
+                if (particles && Math.random() < 0.6) {
+                    spawnParticles(particles, ex, ey, 3, {
+                        colors: [color, '#ffffff'],
+                        speed: [0.5, 2.5],
+                        life: [150, 300],
+                        size: [1, 2],
+                        gravity: 0.02
+                    });
+                }
             }
-            nextStrike = t + 60 + Math.random() * 70;
+
+            // pauza dintre descărcări scade pe măsură ce energia crește (0.14s -> 0.04s)
+            const gap = 140 - progress * 100;
+            nextStrike = t + gap + Math.random() * gap * 0.6;
         }
         requestAnimationFrame(frame);
     }
@@ -212,14 +243,83 @@ function screenShake(el, duration = 400) {
     setTimeout(() => el.classList.remove('screen-shake-active'), duration);
 }
 
-// Randomizează rotația/scala fulgerelor CSS statice, ca să nu arate
-// identic de fiecare dată când rulează animația 2
+// Randomizează rotația/scala fulgerelor CSS statice (prin custom properties,
+// ca să nu intre în conflict cu animația CSS de wiggle care le folosește),
+// ca să nu arate identic de fiecare dată când rulează animația 2
 function randomizeLightningBolts() {
     document.querySelectorAll('.lightning').forEach(el => {
         const rot = (Math.random() * 360 - 180).toFixed(1);
         const scaleY = (0.7 + Math.random() * 0.7).toFixed(2);
-        el.style.transform = `translate(-50%, -100%) rotate(${rot}deg) scaleY(${scaleY})`;
-        el.style.animationDelay = (Math.random() * 0.3).toFixed(2) + 's';
+        el.style.setProperty('--rot', rot + 'deg');
+        el.style.setProperty('--scaleY', scaleY);
+        el.style.animationDelay = (Math.random() * 0.3).toFixed(2) + 's, ' + (Math.random() * 0.1).toFixed(2) + 's';
+    });
+}
+
+// ============================================================
+//  IRIS REVEAL — tranziție fluidă dintr-un punct de impact
+//  (ex: UI burst-ul din anim1) direct în stage-ul următor.
+// ============================================================
+//
+// Efectul: stage-ul țintă "crește" dintr-un cerc de rază 0 exact din
+// centrul ecranului (unde a avut loc burst-ul), acoperind treptat
+// ecranul. În paralel, o mască neagră din interiorul containerului
+// țintă se stinge (fade), iar un element opțional (ex: cardul OTP)
+// apare cu un mic "pop" de tip spring, puțin după ce cercul ajunge la el.
+function revealStageFromCenter(toStageName, opts = {}) {
+    return new Promise((resolve) => {
+        const duration = opts.duration || 1100;
+        const popSelector = opts.popSelector || null;
+        const toStage = document.getElementById('stage-' + toStageName);
+        if (!toStage) { resolve(); return; }
+
+        const targetContainer =
+            toStage.querySelector('.verify-container, .intro-container, .main-container, .login-container') ||
+            toStage;
+
+        // masca neagră — fundalul stage-ului "se aprinde" din negru, nu apare brusc
+        const mask = document.createElement('div');
+        mask.className = 'reveal-fade-mask';
+        targetContainer.appendChild(mask);
+
+        // elementul de pop (ex: cardul OTP) pornește pregătit pentru animația CSS
+        let popEl = null;
+        if (popSelector) {
+            popEl = toStage.querySelector(popSelector);
+            if (popEl) popEl.classList.remove('card-pop');
+        }
+
+        toStage.classList.add('reveal-start');
+        // forțăm reflow ca tranziția clip-path să pornească efectiv de la 0%
+        // eslint-disable-next-line no-unused-expressions
+        toStage.offsetHeight;
+
+        requestAnimationFrame(() => {
+            toStage.classList.add('reveal-grow');
+        });
+
+        // masca se stinge cam la o treime din reveal — fundalul apare "cu fade"
+        // chiar în timp ce cercul se extinde
+        setTimeout(() => {
+            mask.style.opacity = '0';
+        }, duration * 0.3);
+
+        // elementul central (cardul) apare cu spring, ușor după ce cercul l-a acoperit
+        setTimeout(() => {
+            if (popEl) popEl.classList.add('card-pop');
+        }, duration * 0.45);
+
+        setTimeout(() => {
+            mask.remove();
+
+            // finalizăm switch-ul de stage în mod normal
+            toStage.classList.remove('reveal-start', 'reveal-grow');
+            document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+            toStage.classList.add('active');
+            currentStage = toStageName;
+
+            resolve();
+        }, duration + 60);
     });
 }
 
@@ -343,11 +443,9 @@ function initLoginForm() {
                     luna: data.luna
                 }));
 
-                // Animația 1
+                // Animația 1 — se termină cu tranziția (iris reveal) direct în verify
                 await playAnimation1(username, password);
 
-                // Treci la verify
-                goToStage('verify');
                 document.getElementById('otp-email').textContent = otpEmail;
                 document.querySelector('.otp-digit').focus();
 
@@ -373,11 +471,28 @@ function initLoginForm() {
     });
 }
 
+// Constante de timing pentru animația 1 — ajustează liber aici dacă vrei
+// să tragi mai mult sau mai puțin de vreo fază.
+const ANIM1_TIMING = {
+    barStart: 50,        // când pornește bara spre dreapta
+    spinStart: 420,      // când încep user/parola să se rotească spre centru
+    burstStart: 1770,    // când apare UI burst-ul din centru
+    revealStart: 2050,   // când începe tranziția (iris reveal) spre verify
+    revealDuration: 1150 // durata reveal-ului propriu-zis
+};
+
 // ============================================================
-//  ANIMAȚIA 1 — bară + rotire spre centru + UI burst
+//  ANIMAȚIA 1 — bară + rotire spre centru + UI burst + reveal continuu
 // ============================================================
+//
+// Spre deosebire de o variantă cu fade-out separat + schimbare bruscă de
+// stage, aici UI burst-ul declanșează direct un "iris reveal": stage-ul
+// de verify crește dintr-un cerc exact din punctul burst-ului, acoperind
+// treptat ecranul, cu propriul fundal apărând cu fade din negru și
+// cardul OTP apărând cu un mic spring — totul ca O SINGURĂ tranziție
+// continuă, nu două animații lipite.
 function playAnimation1(username, password) {
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
         const anim1 = document.getElementById('anim1');
         const bar = document.getElementById('anim1-bar');
         const userEl = document.getElementById('anim1-user');
@@ -395,7 +510,7 @@ function playAnimation1(username, password) {
         const canvas = createFxCanvas(anim1);
         const ctx = canvas.getContext('2d');
         const particles = [];
-        runParticleLoop(canvas, ctx, particles, 3200);
+        runParticleLoop(canvas, ctx, particles, ANIM1_TIMING.revealStart + 1200);
 
         // Faza 1: bara se mișcă COMPLET spre dreapta, cu scântei care se
         // desprind din ea (efect de "friction spark")
@@ -409,13 +524,13 @@ function playAnimation1(username, password) {
                 spread: Math.PI * 0.6,
                 angleOffset: 0
             });
-        }, 50);
+        }, ANIM1_TIMING.barStart);
 
         // Faza 2: user + parola se rotesc și merg în centru (spring/overshoot)
         setTimeout(() => {
             userEl.classList.add('spinning');
             passEl.classList.add('spinning');
-        }, 420);
+        }, ANIM1_TIMING.spinStart);
 
         // Faza 3: UI BURST (explozie din centru) + shake + particule radiale
         setTimeout(() => {
@@ -428,25 +543,25 @@ function playAnimation1(username, password) {
                 life: [500, 950],
                 size: [1.5, 4]
             });
-        }, 1770);
+        }, ANIM1_TIMING.burstStart);
 
-        // Faza 4: Fade out + cleanup + resolve
-        setTimeout(() => {
-            anim1.style.transition = 'opacity 0.5s';
-            anim1.style.opacity = '0';
+        // Faza 4: burst-ul "crește" direct în verify — o singură tranziție,
+        // fără fade-out separat al anim1-ului
+        setTimeout(async () => {
+            await revealStageFromCenter('verify', {
+                duration: ANIM1_TIMING.revealDuration,
+                popSelector: '.otp-card'
+            });
 
-            setTimeout(() => {
-                anim1.classList.add('hidden');
-                anim1.style.opacity = '1';
-                anim1.style.transition = '';
-                bar.classList.remove('move-right');
-                userEl.classList.remove('spinning');
-                passEl.classList.remove('spinning');
-                uiBurst.classList.remove('active');
-                destroyFxCanvas(canvas);
-                resolve();
-            }, 500);
-        }, 2770);
+            // acum verify e complet vizibil deasupra — curățăm anim1 în liniște
+            anim1.classList.add('hidden');
+            bar.classList.remove('move-right');
+            userEl.classList.remove('spinning');
+            passEl.classList.remove('spinning');
+            uiBurst.classList.remove('active');
+            destroyFxCanvas(canvas);
+            resolve();
+        }, ANIM1_TIMING.revealStart);
     });
 }
 
@@ -605,6 +720,31 @@ function initOTPButtons() {
     }
 }
 
+// Constante de timing pentru animația 2 — ajustează liber aici dacă vrei
+// s-o faci și mai lungă/spectaculoasă. `electricityDuration` controlează
+// direct cât ține acumularea de fulgere înainte de explozie.
+const ANIM2_TIMING = {
+    success: {
+        fadeStart: 100,
+        electricityStart: 350,
+        electricityDuration: 2000,   // cât "se acumulează" energia înainte de explozie
+        intensifyOffset: 1050,       // relativ la electricityStart — ultima parte, mai violentă
+        explosionOffset: 100,        // relativ la finalul electricității
+        vortexOffset: 900,           // relativ la explozie
+        vortexDuration: 4000,
+        textOffset: 900,             // relativ la finalul vortexului
+        textDuration: 7000
+    },
+    fail: {
+        fadeStart: 100,
+        electricityStart: 400,
+        electricityDuration: 1600,
+        explosionOffset: 100,
+        errorOffset: 900,            // relativ la explozie
+        endOffset: 1500              // relativ la eroare
+    }
+};
+
 // ============================================================
 //  ANIMAȚIA 2 — electricitate + explozie + vortex + rotire + text
 // ============================================================
@@ -634,25 +774,30 @@ function playAnimation2(isSuccess) {
         const cy = () => canvas.height / 2;
 
         if (isSuccess) {
+            const T = ANIM2_TIMING.success;
+            const explosionStart = T.electricityStart + T.electricityDuration + T.explosionOffset;
+            const vortexStart = explosionStart + T.vortexOffset;
+            const textStart = vortexStart + T.vortexDuration + T.textOffset;
+            const endTime = textStart + T.textDuration;
+
             // ===== COD CORECT - VERDE =====
 
             // Faza 1: Fade out background
-            setTimeout(() => {
-                container.classList.add('fade-out-bg');
-            }, 100);
+            setTimeout(() => container.classList.add('fade-out-bg'), T.fadeStart);
 
-            // Faza 2: Electricitate detaliată (CSS + fulgere procedurale pe canvas)
+            // Faza 2: Electricitate — acumulare progresivă (CSS wiggle + fulgere pe canvas)
             setTimeout(() => {
                 randomizeLightningBolts();
                 electricity.classList.add('active');
                 playSound('sfx-electric', 0.9);
-                runLightningLoop(canvas, ctx, cx(), cy(), 1400, '#00ff88', '#00ff88');
-            }, 350);
+                runLightningLoop(canvas, ctx, cx(), cy(), T.electricityDuration, '#00ff88', '#00ff88', particles);
+                runParticleLoop(canvas, ctx, particles, T.electricityDuration + 300);
+            }, T.electricityStart);
 
-            // intensifică flicker-ul spre finalul fazei de electricitate
+            // ultima parte a electricității devine mult mai violentă
             setTimeout(() => {
                 electricity.classList.add('intensify');
-            }, 900);
+            }, T.electricityStart + T.intensifyOffset);
 
             // Faza 3: Explozie MARE
             setTimeout(() => {
@@ -661,14 +806,14 @@ function playAnimation2(isSuccess) {
                 explosion.classList.add('active');
                 playSound('sfx-explosion', 1.0);
                 screenShake(container, 450);
-                spawnParticles(particles, cx(), cy(), 70, {
+                spawnParticles(particles, cx(), cy(), 80, {
                     colors: ['#ffffff', '#00ff88', '#7dffc0'],
-                    speed: [4, 14],
-                    life: [600, 1100],
+                    speed: [4, 15],
+                    life: [600, 1150],
                     size: [1.5, 4.5]
                 });
                 runParticleLoop(canvas, ctx, particles, 1200);
-            }, 1750);
+            }, explosionStart);
 
             // Faza 4: Vortex într-o ZONĂ ALEATORIE + rotire ecran completă
             setTimeout(() => {
@@ -688,15 +833,15 @@ function playAnimation2(isSuccess) {
                 const vx = (randomX / 100) * canvas.width;
                 const vy = (randomY / 100) * canvas.height;
                 const swirlParticles = [];
-                spawnParticles(swirlParticles, vx, vy, 50, {
+                spawnParticles(swirlParticles, vx, vy, 55, {
                     colors: ['#00ff88', '#ffffff'],
                     speed: [0.5, 1.5],
                     life: [2600, 3600],
                     size: [1, 3],
                     gravity: 0
                 });
-                runParticleLoop(canvas, ctx, swirlParticles, 4000);
-            }, 2650);
+                runParticleLoop(canvas, ctx, swirlParticles, T.vortexDuration);
+            }, vortexStart);
 
             // Faza 5: Reset + text MAXGAMESTORE cu scântei ambientale
             setTimeout(() => {
@@ -719,9 +864,8 @@ function playAnimation2(isSuccess) {
                     });
                 }, 250);
                 canvas._sparkInterval = sparkInterval;
-                runParticleLoop(canvas, ctx, particles, 6900);
-
-            }, 6650);
+                runParticleLoop(canvas, ctx, particles, T.textDuration - 100);
+            }, textStart);
 
             // Faza 6: Final
             setTimeout(() => {
@@ -731,21 +875,25 @@ function playAnimation2(isSuccess) {
                 playSound('sfx-whoosh', 0.5);
                 destroyFxCanvas(canvas);
                 resolve();
-            }, 13650);
+            }, endTime);
 
         } else {
+            const T = ANIM2_TIMING.fail;
+            const explosionStart = T.electricityStart + T.electricityDuration + T.explosionOffset;
+            const errorStart = explosionStart + T.errorOffset;
+            const endTime = errorStart + T.endOffset;
+
             // ===== COD GREȘIT - ROȘU =====
 
-            setTimeout(() => {
-                container.classList.add('fade-out-bg');
-            }, 100);
+            setTimeout(() => container.classList.add('fade-out-bg'), T.fadeStart);
 
             setTimeout(() => {
                 randomizeLightningBolts();
                 electricity.classList.add('active', 'red');
                 playSound('sfx-electric', 0.9);
-                runLightningLoop(canvas, ctx, cx(), cy(), 1300, '#ff0044', '#ff0044');
-            }, 400);
+                runLightningLoop(canvas, ctx, cx(), cy(), T.electricityDuration, '#ff0044', '#ff0044', particles);
+                runParticleLoop(canvas, ctx, particles, T.electricityDuration + 300);
+            }, T.electricityStart);
 
             setTimeout(() => {
                 stopSound('sfx-electric');
@@ -753,18 +901,16 @@ function playAnimation2(isSuccess) {
                 explosion.classList.add('active', 'red');
                 playSound('sfx-explosion', 1.0);
                 screenShake(container, 400);
-                spawnParticles(particles, cx(), cy(), 40, {
+                spawnParticles(particles, cx(), cy(), 45, {
                     colors: ['#ff0044', '#ffffff', '#ff5577'],
                     speed: [3, 10],
                     life: [400, 800],
                     size: [1.5, 4]
                 });
                 runParticleLoop(canvas, ctx, particles, 1000);
-            }, 2000);
+            }, explosionStart);
 
-            setTimeout(() => {
-                playSound('sfx-error', 0.7);
-            }, 2900);
+            setTimeout(() => playSound('sfx-error', 0.7), errorStart);
 
             setTimeout(() => {
                 container.classList.remove('fade-out-bg');
@@ -772,7 +918,7 @@ function playAnimation2(isSuccess) {
                 playSound('sfx-whoosh', 0.5);
                 destroyFxCanvas(canvas);
                 resolve();
-            }, 4400);
+            }, endTime);
         }
     });
 }
