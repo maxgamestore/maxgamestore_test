@@ -994,6 +994,95 @@ html, body {
     );
 }
 
+/* ============================================================
+   BILE DE ELECTRICITATE — apar random, ezită verde/roșu, apoi
+   (la succes) se contopesc într-o singură bilă care devine uriașă
+   ============================================================ */
+.electric-orb {
+    position: absolute;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: radial-gradient(circle, #ffffff 0%, var(--info) 45%, transparent 75%);
+    box-shadow: 0 0 34px var(--info), 0 0 70px var(--info-glow);
+    opacity: 0;
+    z-index: 12;
+    transition:
+        left 0.75s var(--ease-expo),
+        top 0.75s var(--ease-expo),
+        width 0.9s var(--ease-expo),
+        height 0.9s var(--ease-expo),
+        transform 0.4s var(--ease-spring),
+        opacity 0.4s ease,
+        background 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.electric-orb.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.electric-orb.green {
+    background: radial-gradient(circle, #ffffff 0%, var(--success) 45%, transparent 75%);
+    box-shadow: 0 0 34px var(--success), 0 0 70px var(--success-glow);
+}
+
+.electric-orb.red {
+    background: radial-gradient(circle, #ffffff 0%, var(--error) 45%, transparent 75%);
+    box-shadow: 0 0 34px var(--error), 0 0 70px var(--error-glow);
+}
+
+/* bila unică rezultată din contopire — devine mare (~75% din ecran) */
+.electric-orb.giant {
+    width: 75vmin;
+    height: 75vmin;
+    box-shadow:
+        0 0 60px var(--success),
+        0 0 140px var(--success-glow),
+        inset 0 0 80px rgba(0, 255, 136, 0.5);
+}
+
+/* zoom in — bila crește peste dimensiunea ecranului și se stinge în alb */
+.electric-orb.zoom-in {
+    width: 400vmax;
+    height: 400vmax;
+    background: radial-gradient(circle, #ffffff 0%, var(--success) 30%, var(--success) 60%, transparent 85%);
+    transition:
+        width 0.7s var(--ease-expo),
+        height 0.7s var(--ease-expo),
+        opacity 0.6s ease 0.35s;
+    opacity: 0;
+}
+
+/* eșec — bilele pur și simplu se sting, nu se contopesc */
+.electric-orb.fizzle {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+    transition: transform 0.5s var(--ease-smooth), opacity 0.5s ease;
+}
+
+/* ============================================================
+   LITERELE "MAXGAMESTORE" — formate una câte una, din scântei
+   ============================================================ */
+.mgs-letter {
+    display: inline-block;
+    opacity: 0;
+    transform: scale(0.3) rotate(-20deg) translateY(10px);
+    filter: blur(6px);
+    transition:
+        opacity 0.4s var(--ease-spring),
+        transform 0.4s var(--ease-spring),
+        filter 0.4s var(--ease-spring);
+}
+
+.mgs-letter.formed {
+    opacity: 1;
+    transform: scale(1) rotate(0deg) translateY(0);
+    filter: blur(0);
+}
+
 /* VORTEX, cu swirl interior rotativ (conic-gradient) */
 .intro-vortex {
     position: absolute;
@@ -1109,10 +1198,18 @@ html, body {
     transform: translate(-50%, -50%);
     opacity: 0;
     z-index: 20;
+    transition: opacity 0.3s ease, transform 0.9s var(--ease-expo);
 }
 
-.intro-text.active {
-    animation: text-maxgamestore 7s ease-out forwards;
+.intro-text.show {
+    opacity: 1;
+}
+
+/* micșorează și zboară spre punctul țintă (ex: bara principală din main) —
+   --fly-x/--fly-y sunt setate din JS cu poziția exactă a țintei */
+.intro-text.fly-out {
+    transform: translate(calc(-50% + var(--fly-x, 0px)), calc(-50% + var(--fly-y, 0px))) scale(0.12);
+    opacity: 0;
 }
 
 .intro-text h1 {
@@ -1131,8 +1228,8 @@ html, body {
     filter: brightness(1.2);
 }
 
-.intro-text.active h1::before,
-.intro-text.active h1::after {
+.intro-text.glitching h1::before,
+.intro-text.glitching h1::after {
     content: 'MAXGAMESTORE';
     position: absolute;
     top: 0;
@@ -1142,13 +1239,13 @@ html, body {
     pointer-events: none;
 }
 
-.intro-text.active h1::before {
+.intro-text.glitching h1::before {
     color: #ff0044;
     animation: glitch-shift 2.4s steps(2, end) infinite;
     left: 2px;
 }
 
-.intro-text.active h1::after {
+.intro-text.glitching h1::after {
     color: #00eaff;
     animation: glitch-shift 2.6s steps(2, end) infinite reverse;
     left: -2px;
@@ -1167,28 +1264,6 @@ html, body {
     40% { opacity: 1; filter: brightness(1.5); }
     60% { opacity: 0.85; filter: brightness(2); }
     80% { opacity: 1; filter: brightness(1.3); }
-}
-
-@keyframes text-maxgamestore {
-    0% {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0.3);
-        filter: blur(20px);
-    }
-    10% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-        filter: blur(0px);
-    }
-    80% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-    }
-    100% {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(1.5);
-        filter: blur(10px);
-    }
 }
 
 /* ============================================================
@@ -1298,8 +1373,21 @@ html, body {
 .main-content {
     flex: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 12px;
+}
+
+/* heading inserat dinamic din JS după animația de succes, deasupra
+   placeholder-ului existent — aici userul va pune conținutul real */
+.main-heading {
+    color: var(--accent);
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    text-shadow: 0 0 20px var(--accent-glow);
+    animation: bar-slide-in 0.6s var(--ease-expo);
 }
 
 .placeholder-text {
