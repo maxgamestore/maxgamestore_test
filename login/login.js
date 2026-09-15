@@ -395,6 +395,57 @@ function randomizeLightningBolts() {
     });
 }
 
+// Promisiune care se rezolvă după `ms` milisecunde — folosită ca să scriem
+// secvențe lungi (ca cea de mai jos, cu multe faze) drept cod liniar
+// async/await, în loc de setTimeout-uri imbricate greu de urmărit.
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Alege `count` poziții (în %) distribuite în jurul centrului ecranului,
+// cu suficientă distanță între ele — pentru cele 3 bile de electricitate
+function randomOrbPositions(count) {
+    const positions = [];
+    const baseAngle = Math.random() * 360;
+    for (let i = 0; i < count; i++) {
+        const angle = (baseAngle + (360 / count) * i + (Math.random() - 0.5) * 40) * (Math.PI / 180);
+        const radius = 22 + Math.random() * 14; // % față de centru
+        positions.push({
+            x: 50 + Math.cos(angle) * radius,
+            y: 50 + Math.sin(angle) * radius
+        });
+    }
+    return positions;
+}
+
+// Sparge un text în <span>-uri individuale (pentru formarea literă cu literă)
+function buildLetterSpans(h1, text) {
+    h1.innerHTML = '';
+    const spans = [];
+    for (const ch of text) {
+        const span = document.createElement('span');
+        span.className = 'mgs-letter';
+        span.textContent = ch;
+        h1.appendChild(span);
+        spans.push(span);
+    }
+    return spans;
+}
+
+// Inserează/actualizează heading-ul "MAXGAMESTORE" din ecranul principal,
+// deasupra placeholder-ului existent — acolo unde userul va pune conținut
+function setMainHeading(text) {
+    const content = document.querySelector('.main-content');
+    if (!content) return;
+    let heading = content.querySelector('.main-heading');
+    if (!heading) {
+        heading = document.createElement('h2');
+        heading.className = 'main-heading';
+        content.insertBefore(heading, content.firstChild);
+    }
+    heading.textContent = text;
+}
+
 // ============================================================
 //  IRIS REVEAL — tranziție fluidă dintr-un punct de impact
 //  (ex: UI burst-ul din anim1) direct în stage-ul următor.
@@ -411,6 +462,11 @@ function revealStageFromCenter(toStageName, opts = {}) {
         const popSelector = opts.popSelector || null;
         const toStage = document.getElementById('stage-' + toStageName);
         if (!toStage) { resolve(); return; }
+
+        // originea cercului — implicit centrul ecranului, dar poate fi
+        // suprascrisă (ex: punctul unde a "zburat" un element înainte)
+        toStage.style.setProperty('--reveal-x', opts.originX || '50%');
+        toStage.style.setProperty('--reveal-y', opts.originY || '50%');
 
         const targetContainer =
             toStage.querySelector('.verify-container, .intro-container, .main-container, .login-container') ||
@@ -454,6 +510,8 @@ function revealStageFromCenter(toStageName, opts = {}) {
 
             // finalizăm switch-ul de stage în mod normal
             toStage.classList.remove('reveal-start', 'reveal-grow');
+            toStage.style.removeProperty('--reveal-x');
+            toStage.style.removeProperty('--reveal-y');
             document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
             toStage.classList.add('active');
             currentStage = toStageName;
@@ -927,11 +985,7 @@ function initOTPButtons() {
                 if (data.success) {
                     verifyBtn.textContent = 'SUCCESS!';
                     await revealStageFromCenter('intro', { duration: 900 });
-                    await playAnimation2(true);
-
-                    document.getElementById('main-username').textContent = currentUser.username;
-                    setLunaCount(currentUser.luna || 100);
-                    await revealStageFromCenter('main', { duration: 900 });
+                    await playAnimation2(true); // ajunge singură până în stage-ul "main"
 
                 } else {
                     flashOtpCard();
@@ -984,33 +1038,6 @@ function initOTPButtons() {
     }
 }
 
-// Constante de timing pentru animația 2 — ajustează liber aici dacă vrei
-// s-o faci și mai lungă/spectaculoasă. `electricityDuration` controlează
-// direct cât ține acumularea de fulgere înainte de explozie.
-// Faza de electricitate ALBASTRĂ e comună — indiferent dacă răspunsul
-// e corect sau nu, userul nu știe încă rezultatul în acest interval.
-// Abia la "scânteia mare" (sparkOffset) se dezvăluie culoarea reală.
-const ANIM2_TIMING = {
-    fadeStart: 100,
-    electricityStart: 350,
-    electricityDuration: 5000,   // ~5s de "verificare" — cerut explicit, culoare albastră
-    intensifyOffset: 3900,       // relativ la electricityStart — ultima ~1.1s, mai violentă
-    sparkOffset: 150,            // scânteia mare vine puțin după finalul fazei albastre
-    revealColorDuration: 550,    // cât ține electricitatea deja colorată (verde/roșu), înainte de explozie
-    success: {
-        explosionOffset: 150,    // relativ la finalul fazei colorate
-        vortexOffset: 900,
-        vortexDuration: 4000,
-        textOffset: 900,
-        textDuration: 7000
-    },
-    fail: {
-        explosionOffset: 150,
-        errorOffset: 900,
-        endOffset: 1500
-    }
-};
-
 // ============================================================
 //  ANIMAȚIA 2 (REDUCED-MOTION) — fără canvas, fără fulgere, fără
 //  rotirea ecranului (rotirea completă e un trigger clasic pentru
@@ -1028,7 +1055,7 @@ function playAnimation2Reduced(isSuccess) {
         electricity.classList.remove('active', 'red', 'intensify');
         explosion.classList.remove('active', 'red');
         vortex.classList.remove('active');
-        text.classList.remove('active');
+        text.classList.remove('show', 'fly-out', 'glitching');
 
         if (isSuccess) {
             playSound('sfx-explosion', 0.6);
@@ -1036,12 +1063,16 @@ function playAnimation2Reduced(isSuccess) {
 
             setTimeout(() => {
                 explosion.classList.remove('active');
-                text.classList.add('active');
+                text.classList.add('show');
                 playSound('sfx-whoosh', 0.4);
             }, 300);
 
             setTimeout(() => {
-                text.classList.remove('active');
+                text.classList.remove('show');
+                document.getElementById('main-username').textContent = currentUser.username;
+                setLunaCount(currentUser.luna || 100);
+                setMainHeading('MAXGAMESTORE');
+                goToStage('main');
                 resolve();
             }, 1400);
         } else {
@@ -1061,194 +1092,234 @@ function playAnimation2Reduced(isSuccess) {
 //  care dezvăluie rezultatul (verde/roșu) → explozie + vortex/rotire
 //  (succes) sau explozie + eroare (eșec)
 // ============================================================
-function playAnimation2(isSuccess) {
+// Fazele sunt scrise ca durate RELATIVE (nu offset-uri absolute) — mult
+// mai ușor de citit/ajustat pentru o secvență cu atât de multe etape.
+const ANIM2_TIMING = {
+    fadeStart: 100,
+    orbsAppear: 350,          // după fade, cele 3 bile de electricitate apar
+    flickerDuration: 2200,    // ezitare verde/roșu, per bilă, independent
+    settleGap: 350,           // pauză după ce toate se fixează pe rezultatul real
+    success: {
+        mergeDuration: 700,       // bilele migrează spre centru
+        growDuration: 900,        // bila unică devine uriașă (~75% ecran)
+        zoomDuration: 700,        // zoom in, se stinge în alb
+        postZoomGap: 250,
+        orangeSparkGap: 200,      // după scânteia portocalie, înainte de prima literă
+        letterStagger: 110,       // decalaj între apariția literelor
+        letterSettle: 400,        // timp de așezare după ultima literă
+        holdAfterText: 3000,      // așteptare cerută explicit, după ce tot textul s-a format
+        flyDuration: 900,         // zboară micșorat spre bara principală
+        revealDuration: 900       // reveal-ul final spre stage-ul "main"
+    },
+    fail: {
+        fizzleDuration: 550,      // bilele roșii pur și simplu se sting
+        endGap: 900
+    }
+};
+
+// ============================================================
+//  ANIMAȚIA 2 — 3 bile de electricitate apar random, ezită între
+//  verde/roșu, apoi (la succes) se contopesc într-o singură bilă care
+//  devine uriașă, zoom in, scânteie portocalie, literele "MAXGAMESTORE"
+//  se formează una câte una din scântei, așteptare, apoi zboară
+//  micșorat spre bara principală din ecranul "main".
+//  (la eșec, bilele roșii pur și simplu se sting)
+// ============================================================
+async function playAnimation2(isSuccess) {
     if (REDUCE_MOTION) return playAnimation2Reduced(isSuccess);
 
-    return new Promise((resolve) => {
-        const container = document.querySelector('.intro-container');
-        const electricity = document.getElementById('intro-electricity');
-        const explosion = document.getElementById('intro-explosion');
-        const vortex = document.getElementById('intro-vortex');
-        const text = document.getElementById('intro-text');
+    const container = document.querySelector('.intro-container');
+    const text = document.getElementById('intro-text');
+    const h1 = text.querySelector('h1');
+    const T = ANIM2_TIMING;
 
-        // Reset
-        container.classList.remove('rotating', 'fade-out-bg');
-        container.style.transform = '';
-        electricity.classList.remove('active', 'red', 'blue', 'intensify');
-        explosion.classList.remove('active', 'red');
-        vortex.classList.remove('active');
-        vortex.style.top = '';
-        vortex.style.left = '';
-        text.classList.remove('active');
+    // Reset
+    container.classList.remove('rotating', 'fade-out-bg');
+    container.style.transform = '';
+    document.querySelectorAll('.electric-orb').forEach((o) => o.remove());
+    text.classList.remove('show', 'fly-out', 'glitching');
+    text.style.removeProperty('--fly-x');
+    text.style.removeProperty('--fly-y');
 
-        // FX: runtime unificat de particule + fulgere peste tot intro-container-ul
-        const canvas = createFxCanvas(container);
-        const ctx = canvas.getContext('2d');
-        const fx = createFxRuntime(canvas, ctx);
-        const cx = () => canvas.width / 2;
-        const cy = () => canvas.height / 2;
+    const canvas = createFxCanvas(container);
+    const ctx = canvas.getContext('2d');
+    const fx = createFxRuntime(canvas, ctx);
 
-        const T = ANIM2_TIMING;
-        const resultColor = isSuccess ? '#00ff88' : '#ff0044';
-        const sparkTime = T.electricityStart + T.electricityDuration + T.sparkOffset;
-        const coloredEnd = sparkTime + T.revealColorDuration;
+    // Faza 1: fade out background
+    container.classList.add('fade-out-bg');
+    await sleep(T.orbsAppear - T.fadeStart);
 
-        // Faza 1: Fade out background
-        setTimeout(() => container.classList.add('fade-out-bg'), T.fadeStart);
+    // Faza 2: 3 bile de electricitate apar în puncte random ale ecranului
+    const positions = randomOrbPositions(3);
+    const orbs = positions.map((pos) => {
+        const el = document.createElement('div');
+        el.className = 'electric-orb';
+        el.style.left = pos.x + '%';
+        el.style.top = pos.y + '%';
+        container.appendChild(el);
+        requestAnimationFrame(() => el.classList.add('show'));
 
-        // Faza 2: Electricitate ALBASTRĂ — faza de "verificare" (~5s),
-        // identică indiferent de rezultat, ca userul să nu știe încă răspunsul
-        setTimeout(() => {
-            randomizeLightningBolts();
-            electricity.classList.add('active', 'blue');
-            playSound('sfx-electric', 0.8);
-            fxSetLightning(fx, cx(), cy(), T.electricityDuration, '#33aaff', '#33aaff');
-            fxEnsureRunning(fx, T.electricityDuration + 300);
-        }, T.electricityStart);
+        const px = (pos.x / 100) * canvas.width;
+        const py = (pos.y / 100) * canvas.height;
+        const source = fxAddLightning(fx, px, py, T.flickerDuration + 6000, '#33aaff', '#33aaff', {
+            radius: 65,
+            followEl: el
+        });
+        return { el, source };
+    });
+    playSound('sfx-electric', 0.7);
+    fxEnsureRunning(fx, T.flickerDuration + 4500);
 
-        // ultima ~1.1s din faza albastră devine mai intensă — anticipație
-        setTimeout(() => {
-            electricity.classList.add('intensify');
-        }, T.electricityStart + T.intensifyOffset);
+    // Faza 3: fiecare bilă "ezită" independent între verde și roșu
+    const flickerTimers = orbs.map((o) => setInterval(() => {
+        const green = Math.random() < 0.5;
+        o.el.classList.toggle('green', green);
+        o.el.classList.toggle('red', !green);
+        o.source.color = green ? '#00ff88' : '#ff0044';
+        o.source.glow = o.source.color;
+    }, 130 + Math.random() * 90));
 
-        // Faza 3: SCÂNTEIA MARE — flash alb pe tot ecranul, care dezvăluie
-        // culoarea reală (verde = corect, roșu = greșit)
-        setTimeout(() => {
-            stopSound('sfx-electric');
-            electricity.classList.remove('blue', 'intensify');
-            if (!isSuccess) electricity.classList.add('red'); // succesul rămâne pe verde (culoarea implicită)
+    await sleep(T.flickerDuration);
+    flickerTimers.forEach(clearInterval);
 
-            fxClearLightning(fx);
-            fxFlash(fx, '#ffffff', 380);
-            fxSpawnParticles(fx, cx(), cy(), 40, {
-                colors: ['#ffffff', resultColor],
-                speed: [3, 10],
-                life: [300, 550],
+    // Faza 4: se fixează pe rezultatul REAL — toate deodată
+    const resultColor = isSuccess ? '#00ff88' : '#ff0044';
+    orbs.forEach((o) => {
+        o.el.classList.toggle('green', isSuccess);
+        o.el.classList.toggle('red', !isSuccess);
+        o.source.color = resultColor;
+        o.source.glow = resultColor;
+    });
+    playSound('sfx-whoosh', 0.5);
+    await sleep(T.settleGap);
+
+    if (isSuccess) {
+        const S = T.success;
+
+        // Faza 5: bilele migrează spre centru — se contopesc
+        screenShake(container, 300);
+        orbs.forEach((o) => {
+            o.el.style.left = '50%';
+            o.el.style.top = '50%';
+        });
+        await sleep(S.mergeDuration);
+
+        // păstrăm o singură bilă (bila-nucleu), scoatem celelalte două
+        const core = orbs[0].el;
+        const coreSource = orbs[0].source;
+        for (let i = 1; i < orbs.length; i++) {
+            fxRemoveLightning(fx, orbs[i].source);
+            orbs[i].el.remove();
+        }
+        coreSource.followEl = null;
+        coreSource.originX = canvas.width / 2;
+        coreSource.originY = canvas.height / 2;
+
+        // Faza 6: bila devine uriașă (~75% din ecran)
+        core.classList.add('giant');
+        coreSource.radius = Math.min(canvas.width, canvas.height) * 0.34;
+        playSound('sfx-explosion', 0.8);
+        screenShake(container, 400);
+        fxSpawnParticles(fx, canvas.width / 2, canvas.height / 2, 60, {
+            colors: ['#ffffff', '#00ff88', '#7dffc0'],
+            speed: [3, 10],
+            life: [500, 950],
+            size: [1.5, 4]
+        });
+        await sleep(S.growDuration);
+
+        // Faza 7: zoom in — bila crește peste ecran și se stinge în alb
+        fxRemoveLightning(fx, coreSource);
+        core.classList.add('zoom-in');
+        playSound('sfx-vortex', 0.8);
+        await sleep(S.zoomDuration);
+        core.remove();
+        await sleep(S.postZoomGap);
+
+        // Faza 8: scânteia portocalie
+        fxFlash(fx, '#ff8c00', 320);
+        fxEnsureRunning(fx, 400);
+        playSound('sfx-whoosh', 0.6);
+        await sleep(S.orangeSparkGap);
+
+        // Faza 9: fiecare literă a "MAXGAMESTORE" se formează din scântei
+        const letters = buildLetterSpans(h1, 'MAXGAMESTORE');
+        text.classList.add('show');
+        const canvasRect = canvas.getBoundingClientRect();
+        for (const letter of letters) {
+            const r = letter.getBoundingClientRect();
+            fxSpawnParticles(fx, r.left - canvasRect.left + r.width / 2, r.top - canvasRect.top + r.height / 2, 6, {
+                colors: ['#ffd700', '#ffffff'],
+                speed: [1, 4],
+                life: [250, 500],
+                size: [1, 2.5]
+            });
+            fxEnsureRunning(fx, 500);
+            letter.classList.add('formed');
+            await sleep(T.success.letterStagger);
+        }
+        await sleep(S.letterSettle);
+
+        // Faza 10: textul "trăiește" (glitch/energie) cât timp așteptăm
+        text.classList.add('glitching');
+        playSound('sfx-electric-long', 0.5);
+        await sleep(S.holdAfterText);
+
+        // Faza 11: micșorează și zboară spre bara principală din "main"
+        text.classList.remove('glitching');
+        const mainBar = document.querySelector('#stage-main .main-bar');
+        if (mainBar) {
+            const barRect = mainBar.getBoundingClientRect();
+            const targetX = barRect.left + barRect.width * 0.18;
+            const targetY = barRect.top + barRect.height / 2;
+            text.style.setProperty('--fly-x', (targetX - window.innerWidth / 2) + 'px');
+            text.style.setProperty('--fly-y', (targetY - window.innerHeight / 2) + 'px');
+        }
+        playSound('sfx-whoosh', 0.5);
+        text.classList.add('fly-out');
+        await sleep(S.flyDuration);
+
+        // Faza 12: pregătim main + revelăm dintr-un punct apropiat de bară
+        stopSound('sfx-electric-long');
+        document.getElementById('main-username').textContent = currentUser.username;
+        setLunaCount(currentUser.luna || 100);
+        setMainHeading('MAXGAMESTORE');
+        destroyFxCanvas(canvas);
+
+        await revealStageFromCenter('main', {
+            duration: S.revealDuration,
+            originX: '18%',
+            originY: '8%'
+        });
+
+    } else {
+        const F = T.fail;
+
+        // Bilele roșii pur și simplu se sting — fără contopire
+        playSound('sfx-error', 0.7);
+        screenShake(container, 350);
+        orbs.forEach((o) => {
+            const px = (parseFloat(o.el.style.left) / 100) * canvas.width;
+            const py = (parseFloat(o.el.style.top) / 100) * canvas.height;
+            fxSpawnParticles(fx, px, py, 18, {
+                colors: ['#ff0044', '#ffffff', '#ff5577'],
+                speed: [2, 7],
+                life: [350, 650],
                 size: [1.5, 3.5]
             });
-            playSound('sfx-whoosh', 0.7);
-            if (!REDUCE_MOTION) screenShake(container, 300);
+            o.el.classList.add('fizzle');
+        });
+        fxEnsureRunning(fx, F.fizzleDuration + 300);
+        await sleep(F.fizzleDuration);
 
-            // scurtă rafală de electricitate deja colorată, înainte de explozie
-            fxSetLightning(fx, cx(), cy(), T.revealColorDuration, resultColor, resultColor);
-            fxEnsureRunning(fx, T.revealColorDuration + 200);
-        }, sparkTime);
-
-        if (isSuccess) {
-            const S = T.success;
-            const explosionStart = coloredEnd + S.explosionOffset;
-            const vortexStart = explosionStart + S.vortexOffset;
-            const textStart = vortexStart + S.vortexDuration + S.textOffset;
-            const endTime = textStart + S.textDuration;
-
-            // Faza 4: Explozie MARE (verde)
-            setTimeout(() => {
-                electricity.classList.remove('active');
-                explosion.classList.add('active');
-                playSound('sfx-explosion', 1.0);
-                screenShake(container, 450);
-                fxSpawnParticles(fx, cx(), cy(), 80, {
-                    colors: ['#ffffff', '#00ff88', '#7dffc0'],
-                    speed: [4, 15],
-                    life: [600, 1150],
-                    size: [1.5, 4.5]
-                });
-                fxEnsureRunning(fx, 1200);
-            }, explosionStart);
-
-            // Faza 5: Vortex într-o ZONĂ ALEATORIE + rotire ecran completă
-            setTimeout(() => {
-                explosion.classList.remove('active');
-
-                const randomX = 20 + Math.random() * 60;
-                const randomY = 20 + Math.random() * 60;
-
-                vortex.style.top = randomY + '%';
-                vortex.style.left = randomX + '%';
-
-                vortex.classList.add('active');
-                container.classList.add('rotating');
-                playSound('sfx-vortex', 1.0);
-
-                // particule aspirate spre punctul vortexului
-                const vx = (randomX / 100) * canvas.width;
-                const vy = (randomY / 100) * canvas.height;
-                fxSpawnParticles(fx, vx, vy, 55, {
-                    colors: ['#00ff88', '#ffffff'],
-                    speed: [0.5, 1.5],
-                    life: [2600, 3600],
-                    size: [1, 3],
-                    gravity: 0
-                });
-                fxEnsureRunning(fx, S.vortexDuration);
-            }, vortexStart);
-
-            // Faza 6: Reset + text MAXGAMESTORE cu scântei ambientale
-            setTimeout(() => {
-                container.classList.remove('rotating', 'fade-out-bg');
-                container.style.transform = '';
-                vortex.classList.remove('active');
-                vortex.style.top = '';
-                vortex.style.left = '';
-
-                text.classList.add('active');
-                playSound('sfx-electric-long', 0.7);
-
-                const sparkInterval = setInterval(() => {
-                    fxSpawnParticles(fx, cx() + (Math.random() - 0.5) * 400, cy() + (Math.random() - 0.5) * 120, 4, {
-                        colors: ['#ffd700', '#ffffff'],
-                        speed: [0.5, 2],
-                        life: [300, 600],
-                        size: [1, 2.5],
-                        gravity: 0.02
-                    });
-                }, 250);
-                canvas._sparkInterval = sparkInterval;
-                fxEnsureRunning(fx, S.textDuration - 100);
-            }, textStart);
-
-            // Faza 7: Final
-            setTimeout(() => {
-                clearInterval(canvas._sparkInterval);
-                text.classList.remove('active');
-                stopSound('sfx-electric-long');
-                playSound('sfx-whoosh', 0.5);
-                destroyFxCanvas(canvas);
-                resolve();
-            }, endTime);
-
-        } else {
-            const F = T.fail;
-            const explosionStart = coloredEnd + F.explosionOffset;
-            const errorStart = explosionStart + F.errorOffset;
-            const endTime = errorStart + F.endOffset;
-
-            // Faza 4: Explozie MARE (roșie)
-            setTimeout(() => {
-                electricity.classList.remove('active', 'red');
-                explosion.classList.add('active', 'red');
-                playSound('sfx-explosion', 1.0);
-                screenShake(container, 400);
-                fxSpawnParticles(fx, cx(), cy(), 45, {
-                    colors: ['#ff0044', '#ffffff', '#ff5577'],
-                    speed: [3, 10],
-                    life: [400, 800],
-                    size: [1.5, 4]
-                });
-                fxEnsureRunning(fx, 1000);
-            }, explosionStart);
-
-            setTimeout(() => playSound('sfx-error', 0.7), errorStart);
-
-            setTimeout(() => {
-                container.classList.remove('fade-out-bg');
-                explosion.classList.remove('active', 'red');
-                playSound('sfx-whoosh', 0.5);
-                destroyFxCanvas(canvas);
-                resolve();
-            }, endTime);
-        }
-    });
+        orbs.forEach((o) => {
+            fxRemoveLightning(fx, o.source);
+            o.el.remove();
+        });
+        container.classList.remove('fade-out-bg');
+        await sleep(F.endGap);
+        destroyFxCanvas(canvas);
+    }
 }
 
 // ============================================================
