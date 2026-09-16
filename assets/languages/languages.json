@@ -1,1 +1,9 @@
 
+{
+  "default": "en",
+  "fallback": "en",
+  "supported": [
+    { "code": "en", "name": "English", "flag": "🇬🇧" },
+    { "code": "ro", "name": "Română", "flag": "🇷🇴" }
+  ]
+}
