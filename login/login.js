@@ -109,9 +109,10 @@ async function initLanguage() {
         // 5. Setup buton
         setupLanguageButton();
         
+        console.log('✅ Language system initialized:', currentLang);
+        
     } catch (err) {
-        console.error('Language init failed:', err);
-        // Fallback: folosește limba default
+        console.error('❌ Language init failed:', err);
         currentLang = 'en';
     }
 }
@@ -131,8 +132,10 @@ async function setLanguage(code) {
         // Update buton
         updateLanguageButton();
         
+        console.log('✅ Language set to:', code);
+        
     } catch (err) {
-        console.error('Failed to load language:', code, err);
+        console.error('❌ Failed to load language:', code, err);
     }
 }
 
@@ -239,7 +242,7 @@ function updateLanguageButton() {
 }
 
 // ============================================================
-//  FX ENGINE
+//  FX ENGINE — PARTICULE + FULGERE
 // ============================================================
 function createFxCanvas(container) {
     const canvas = document.createElement('canvas');
@@ -625,7 +628,7 @@ function createRipple(e, btn) {
 //  INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', async () => {
-    await initLanguage();  // ← ÎNTÂI limbă
+    await initLanguage();
     initLoginForm();
     initSwitchRegister();
     initOTPInputs();
@@ -701,7 +704,9 @@ function startImageSlideshow() {
 
 function loadImages() {
     const container = document.getElementById('login-image-side');
-    imagesList.forEach((img, idx) => {
+    if (!container) return;
+    
+    imagesList.forEach((img) => {
         const div = document.createElement('div');
         div.className = 'bg-image';
         div.style.backgroundImage = `url('images/${img}')`;
@@ -909,7 +914,7 @@ function playAnimation1(username, password) {
 //  SWITCH REGISTER
 // ============================================================
 function initSwitchRegister() {
-    // Acum e link către signin.html, nu mai avem nevoie de alert
+    // Link către signin.html — nu mai avem nevoie de alert
 }
 
 // ============================================================
