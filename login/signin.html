@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,9 +12,8 @@
     <!-- ============================================================
          SIGNUP FORM
          ============================================================ -->
-    <div class="signin-container">
+    <div class="signin-container" id="signup-view">
 
-        <!-- STÂNGA: FORM (40%) -->
         <div class="signin-form-side">
             <div class="signin-form-wrapper">
                 <div class="logo">
@@ -64,18 +62,48 @@
             </div>
         </div>
 
-        <!-- SEPARATOR OBLIC -->
         <div class="divider"></div>
 
-        <!-- DREAPTA: IMAGINI (60%) -->
         <div class="signin-image-side" id="signin-image-side">
             <div class="image-overlay"></div>
         </div>
     </div>
 
     <!-- ============================================================
-         LANGUAGE SELECTOR — ÎN AFARA CONTAINER-ULUI
+         VERIFICATION SUCCESS VIEW (după click pe link)
          ============================================================ -->
+    <div class="signin-container hidden" id="verified-view">
+        <div class="verified-card">
+            <div class="verified-icon">✅</div>
+            <h1 class="verified-title" data-i18n="verified.title">ACCOUNT VERIFIED!</h1>
+            <p class="verified-message" data-i18n="verified.message">Your account has been verified successfully.</p>
+            <p class="verified-username" id="verified-username">Player</p>
+            <p class="verified-instructions" data-i18n="verified.instructions">Redirecting to main...</p>
+            <div class="verified-spinner"></div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         EMAIL SENT VIEW (după click CREATE ACCOUNT)
+         ============================================================ -->
+    <div class="signin-container hidden" id="email-sent-view">
+        <div class="email-sent-card">
+            <div class="email-icon">📧</div>
+            <h1 class="email-title" data-i18n="check_email.title">CHECK YOUR EMAIL</h1>
+            <p class="email-message" data-i18n="check_email.message">We sent a verification link to:</p>
+            <p class="email-address" id="sent-email">email@example.com</p>
+            <p class="email-instructions" data-i18n="check_email.instructions">
+                Click the link in the email to verify your account.
+                <br>
+                After verification, you'll be redirected automatically.
+            </p>
+            <div class="email-spinner"></div>
+            <p class="email-waiting" data-i18n="check_email.waiting">Waiting for verification...</p>
+            <a href="login.html" class="btn-secondary" data-i18n="check_email.back_to_login">← Back to Login</a>
+        </div>
+    </div>
+
+    <!-- LANGUAGE SELECTOR -->
     <div class="language-selector" id="language-selector">
         <button class="lang-btn" id="lang-btn">
             <span class="lang-flag" id="lang-flag">🇬🇧</span>
