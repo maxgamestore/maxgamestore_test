@@ -1,9 +1,11 @@
-
 {
   "default": "en",
   "fallback": "en",
   "supported": [
     { "code": "en", "name": "English", "flag": "🇬🇧" },
-    { "code": "ro", "name": "Română", "flag": "🇷🇴" }
+    { "code": "ro", "name": "Română", "flag": "🇷🇴" },
+    { "code": "zh", "name": "中文", "flag": "🇨🇳" },
+    { "code": "tr", "name": "Türkçe", "flag": "🇹🇷" },
+    { "code": "de", "name": "Deutsch", "flag": "🇩🇪" }
   ]
 }
