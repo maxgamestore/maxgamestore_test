@@ -50,30 +50,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     await initLanguage();
     startImageSlideshow();
 
-    // Verifică dacă vine din link de verificare
     const params = new URLSearchParams(window.location.search);
     const verified = params.get('verified');
     const user = params.get('user');
 
     if (verified === 'true' && user) {
-        // User a verificat contul — auto-login
         await handleVerifiedArrival(user);
     } else {
-        // Afișează form-ul normal
         initSigninForm();
     }
 });
 
 // ============================================================
-//  HANDLE VERIFIED ARRIVAL (auto-login după verificare)
+//  HANDLE VERIFIED ARRIVAL
 // ============================================================
 async function handleVerifiedArrival(username) {
-    // Ascunde form-ul, arată verified view
     document.getElementById('signup-view').classList.add('hidden');
     document.getElementById('verified-view').classList.remove('hidden');
     document.getElementById('verified-username').textContent = username;
 
-    // Așteaptă 2 secunde (pentru efect vizual), apoi auto-login
     setTimeout(async () => {
         try {
             const res = await fetchWithTimeout(API + '/auto-login', {
@@ -112,13 +107,13 @@ function initSigninForm() {
     const form = document.getElementById('signin-form');
     if (!form) return;
 
-    // Live password strength
+    // Password strength
     const passwordInput = document.getElementById('signin-password');
     if (passwordInput) {
         passwordInput.addEventListener('input', updatePasswordStrength);
     }
 
-    // Live confirm check
+    // Confirm password
     const confirmInput = document.getElementById('signin-confirm');
     if (confirmInput) {
         confirmInput.addEventListener('input', () => {
@@ -142,7 +137,7 @@ function initSigninForm() {
         });
     }
 
-    // Live username check
+    // Username
     const usernameInput = document.getElementById('signin-username');
     if (usernameInput) {
         usernameInput.addEventListener('input', () => {
@@ -171,7 +166,7 @@ function initSigninForm() {
         });
     }
 
-    // Live email check
+    // Email
     const emailInput = document.getElementById('signin-email');
     if (emailInput) {
         emailInput.addEventListener('input', () => {
@@ -207,7 +202,6 @@ function initSigninForm() {
 
         errorEl.textContent = '';
 
-        // Validări
         if (username.length < 3 || username.length > 24) {
             errorEl.textContent = 'Username: 3-24 characters';
             return;
@@ -241,15 +235,12 @@ function initSigninForm() {
             const data = await res.json();
 
             if (data.success) {
-                // Afișează email-sent view
                 showEmailSentView(email, username);
                 startVerificationCheck(username);
-
             } else {
                 btn.disabled = false;
-                btn.textContent = getNestedValue(translations, 'signin.signin_btn') || 'CREATE ACCOUNT';
+                btn.textContent = 'CREATE ACCOUNT';
                 errorEl.textContent = data.error || 'Registration failed';
-
                 form.classList.add('shake');
                 setTimeout(() => form.classList.remove('shake'), 500);
             }
@@ -259,7 +250,7 @@ function initSigninForm() {
                 ? 'Server not responding'
                 : 'Server connection error';
             btn.disabled = false;
-            btn.textContent = getNestedValue(translations, 'signin.signin_btn') || 'CREATE ACCOUNT';
+            btn.textContent = 'CREATE ACCOUNT';
         }
     });
 }
@@ -271,7 +262,6 @@ function showEmailSentView(email, username) {
     document.getElementById('signup-view').classList.add('hidden');
     document.getElementById('email-sent-view').classList.remove('hidden');
     document.getElementById('sent-email').textContent = email;
-
     sessionStorage.setItem('wof_pending_user', username);
 }
 
@@ -289,12 +279,10 @@ function startVerificationCheck(username) {
             if (data.verified) {
                 clearInterval(verificationCheckInterval);
 
-                // Cont verificat! Afișează verified view
                 document.getElementById('email-sent-view').classList.add('hidden');
                 document.getElementById('verified-view').classList.remove('hidden');
                 document.getElementById('verified-username').textContent = username;
 
-                // Auto-login
                 setTimeout(async () => {
                     try {
                         const loginRes = await fetchWithTimeout(API + '/auto-login', {
@@ -326,7 +314,7 @@ function startVerificationCheck(username) {
                 }, 2000);
             }
         } catch (err) {
-            // Ignoră erorile de rețea
+            // Ignoră
         }
     }, 3000);
 }
@@ -391,15 +379,12 @@ function startImageSlideshow() {
         .then(r => r.json())
         .then(data => {
             imagesList = data.images || [];
-            if (imagesList.length === 0) {
-                console.log('No images, using purple background');
-                return;
-            }
+            if (imagesList.length === 0) return;
             loadImages();
             startSlideInterval();
         })
         .catch(() => {
-            console.log('No images.json found - using purple background');
+            console.log('No images, using purple background');
         });
 }
 
