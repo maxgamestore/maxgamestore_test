@@ -1,4 +1,3 @@
-
 // ============================================================
 //  CONFIG
 // ============================================================
@@ -14,10 +13,54 @@ let currentUser = null;
 //  INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
+    handleLoginArrival();
     checkSession();
     initMenuLinks();
     initLogout();
 });
+
+// ============================================================
+//  SOSIRE DIN ANIMAȚIA DE LOGIN
+// ============================================================
+// Dacă tocmai am venit din secvența animată de login (login.js lasă
+// datele în sessionStorage chiar înainte de navigare), afișăm imediat
+// username/luna — fără să așteptăm fetch-ul din checkSession, ca să nu
+// clipească "Player"/100 preț de o clipă — și declanșăm un mic puls
+// electric pe bară + o etichetă "MAXGAMESTORE" care continuă firul
+// textului din animație. La un refresh normal, nimic din toate astea
+// nu se întâmplă (flag-ul nu mai există după prima citire).
+function handleLoginArrival() {
+    let arrival = null;
+    try {
+        const raw = sessionStorage.getItem('wof_arrival');
+        if (raw) {
+            arrival = JSON.parse(raw);
+            sessionStorage.removeItem('wof_arrival');
+        }
+    } catch (e) {}
+
+    if (!arrival) return;
+
+    if (arrival.username) {
+        document.getElementById('main-username').textContent = arrival.username;
+    }
+    if (arrival.luna !== undefined) {
+        document.getElementById('main-luna').textContent = arrival.luna;
+    }
+
+    const bar = document.querySelector('.main-bar');
+    const welcome = document.querySelector('.welcome-section');
+
+    if (bar) bar.classList.add('arrival-flash');
+
+    if (welcome) {
+        welcome.classList.add('arrival-flash');
+        const label = document.createElement('div');
+        label.className = 'arrival-label';
+        label.textContent = 'MAXGAMESTORE';
+        welcome.insertBefore(label, welcome.firstChild);
+    }
+}
 
 // ============================================================
 //  VERIFICĂ SESIUNE
