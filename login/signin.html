@@ -1,1 +1,90 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Of Fights - Sign Up</title>
+    <link rel="icon" href="../assets/favicon.png">
+    <link rel="stylesheet" href="signin.css">
+</head>
+<body>
+
+    <!-- ============================================================
+         SIGNUP FORM
+         ============================================================ -->
+    <div class="signin-container">
+
+        <!-- STÂNGA: FORM (40%) -->
+        <div class="signin-form-side">
+            <div class="signin-form-wrapper">
+                <div class="logo">
+                    <span class="logo-icon">⚔️</span>
+                    <h1 class="logo-text" data-i18n="signin.title">CREATE ACCOUNT</h1>
+                    <p class="logo-subtitle" data-i18n="login.subtitle">MAXGAMESTORE CORPORATION</p>
+                </div>
+
+                <form id="signin-form" autocomplete="off">
+                    <div class="form-group">
+                        <label data-i18n="signin.username">Username</label>
+                        <input type="text" id="signin-username" required minlength="3" maxlength="24" placeholder="username">
+                        <div class="form-hint" id="username-hint"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label data-i18n="signin.email">Email</label>
+                        <input type="email" id="signin-email" required placeholder="email@example.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label data-i18n="signin.password">Password</label>
+                        <input type="password" id="signin-password" required minlength="8" placeholder="••••••••">
+                        <div class="password-strength">
+                            <div class="strength-bar" id="strength-bar"></div>
+                        </div>
+                        <div class="form-hint" id="password-hint"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label data-i18n="signin.confirm">Confirm Password</label>
+                        <input type="password" id="signin-confirm" required placeholder="••••••••">
+                    </div>
+
+                    <div class="form-error" id="signin-error"></div>
+
+                    <button type="submit" class="btn-primary" id="signin-btn" data-i18n="signin.signin_btn">
+                        CREATE ACCOUNT
+                    </button>
+
+                    <p class="form-switch">
+                        <span data-i18n="signin.have_account">Already have an account?</span>
+                        <a href="login.html" data-i18n="signin.login_btn">Login</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+
+        <!-- SEPARATOR OBLIC -->
+        <div class="divider"></div>
+
+        <!-- DREAPTA: IMAGINI (60%) -->
+        <div class="signin-image-side" id="signin-image-side">
+            <div class="image-overlay"></div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         LANGUAGE SELECTOR — ÎN AFARA CONTAINER-ULUI
+         ============================================================ -->
+    <div class="language-selector" id="language-selector">
+        <button class="lang-btn" id="lang-btn">
+            <span class="lang-flag" id="lang-flag">🇬🇧</span>
+            <span class="lang-code" id="lang-code">EN</span>
+            <span class="lang-arrow">▼</span>
+        </button>
+        <div class="lang-dropdown hidden" id="lang-dropdown"></div>
+    </div>
+
+    <script src="signin.js"></script>
+</body>
+</html>
