@@ -28,9 +28,9 @@
     --transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
     /* Easing-uri profesionale pentru animații */
-    --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);      /* deceleration puternică, foarte smooth */
-    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* overshoot / bounce ușor */
-    --ease-smooth: cubic-bezier(0.65, 0, 0.35, 1);    /* accelerare + decelerare simetrică */
+    --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-smooth: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 html, body {
@@ -47,8 +47,7 @@ html, body {
 }
 
 /* ============================================================
-   FX CANVAS (particule + fulgere) — inserat dinamic din JS,
-   nu există în HTML-ul static
+   FX CANVAS (particule + fulgere)
    ============================================================ */
 .fx-canvas {
     position: absolute;
@@ -59,7 +58,6 @@ html, body {
     z-index: 50;
 }
 
-/* Screen-shake reutilizabil, aplicat temporar pe containere */
 @keyframes screen-shake {
     0%, 100% { transform: translate(0, 0); }
     20% { transform: translate(-6px, 4px); }
@@ -90,10 +88,6 @@ html, body {
     z-index: 10;
 }
 
-/* IRIS REVEAL — folosit pentru tranziția fluidă dintr-o animație (ex: UI burst)
-   direct în stage-ul următor, ca și cum acesta "crește" din punctul de impact.
-   Suprascrie complet transition-ul de bază al .stage (doar clip-path se animă,
-   fără cross-fade dublu pe opacity). */
 .stage.reveal-start {
     visibility: visible;
     opacity: 1;
@@ -106,8 +100,6 @@ html, body {
     clip-path: circle(150% at var(--reveal-x, 50%) var(--reveal-y, 50%));
 }
 
-/* Mască neagră inserată dinamic în fundalul stage-ului revelat,
-   care se stinge (fade) chiar în timpul reveal-ului */
 .reveal-fade-mask {
     position: absolute;
     inset: 0;
@@ -151,7 +143,6 @@ html, body {
         filter 0.85s var(--ease-expo);
 }
 
-/* la login reușit, bara "duce" panoul cu ea spre dreapta, în afara ecranului */
 .login-form-wrapper.swept-away {
     transform: translateX(120vw) rotate(8deg) scale(0.85);
     opacity: 0;
@@ -189,6 +180,15 @@ html, body {
     background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+}
+
+.logo-subtitle {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    text-transform: uppercase;
 }
 
 .form-group {
@@ -291,6 +291,7 @@ html, body {
     color: var(--accent);
     text-decoration: none;
     font-weight: 600;
+    margin-left: 5px;
 }
 
 .form-switch a:hover {
@@ -317,8 +318,6 @@ html, body {
         opacity 0.4s 0.5s;
 }
 
-/* la login reușit, bara iese complet din ecran spre dreapta — "ducând"
-   panoul de login cu ea (vezi .login-form-wrapper.swept-away) */
 .divider.sweep-out {
     left: 110vw;
     transform: rotate(5deg) scaleY(1.4);
@@ -408,7 +407,6 @@ html, body {
     opacity: 1;
 }
 
-/* BARA - se duce COMPLET în afara ecranului, cu blur de mișcare */
 .anim1-bar {
     position: absolute;
     left: 40%;
@@ -433,7 +431,6 @@ html, body {
     filter: blur(3px) brightness(1.6);
 }
 
-/* TEXT USER + PAROLĂ */
 .anim1-text {
     position: absolute;
     font-size: 32px;
@@ -458,7 +455,6 @@ html, body {
     transform: translate(-50%, -50%);
 }
 
-/* Animație: user și parolă merg spre centru cu overshoot (spring), se rotesc, devin mici */
 .anim1-text.spinning {
     opacity: 1;
 }
@@ -525,7 +521,6 @@ html, body {
     }
 }
 
-/* UI BURST (explozie din centru după animație), cu 2 inele de shockwave */
 .anim1-ui-burst {
     position: absolute;
     top: 50%;
@@ -721,7 +716,6 @@ html, body {
     100% { transform: scale(1); }
 }
 
-/* flash roșu peste card la cod greșit — inserat/scos dinamic din JS */
 .otp-card-flash {
     position: absolute;
     inset: 0;
@@ -751,6 +745,7 @@ html, body {
     color: var(--accent);
     text-decoration: none;
     font-weight: 600;
+    margin-left: 5px;
 }
 
 .otp-resend a:hover {
@@ -769,7 +764,6 @@ html, body {
     perspective: 1000px;
 }
 
-/* FADE OUT BACKGROUND */
 .intro-container.fade-out-bg {
     animation: fade-out-bg 0.6s ease-out forwards;
 }
@@ -779,7 +773,6 @@ html, body {
     100% { opacity: 0.3; }
 }
 
-/* ELECTRICITATE DETALIATĂ (bază CSS; fulgerele fine sunt desenate pe canvas de JS) */
 .intro-electricity {
     position: absolute;
     top: 50%;
@@ -816,7 +809,6 @@ html, body {
         0 0 40px var(--success),
         0 0 80px var(--success-glow);
     transform-origin: center bottom;
-    /* --rot / --scaleY sunt randomizate din JS la fiecare rulare (randomizeLightningBolts) */
     transform: translate(-50%, -100%) rotate(var(--rot, 0deg)) scaleY(var(--scaleY, 1));
     animation:
         lightning-flicker 0.15s infinite,
@@ -861,7 +853,6 @@ html, body {
     }
 }
 
-/* fulgerul "tremură" continuu — nu mai e o linie statică ce doar pâlpâie */
 @keyframes lightning-wiggle {
     0%, 100% {
         transform: translate(-50%, -100%) rotate(calc(var(--rot, 0deg) - 4deg)) scaleY(var(--scaleY, 1));
@@ -887,7 +878,6 @@ html, body {
         0 0 80px var(--error-glow);
 }
 
-/* fază de "verificare" — albastru, neutru, nu dezvăluie încă rezultatul */
 .intro-electricity.blue .lightning {
     background: linear-gradient(
         180deg,
@@ -904,7 +894,6 @@ html, body {
         0 0 80px var(--info-glow);
 }
 
-/* fază finală de "intensify" — flicker + wiggle mult mai rapide și mai strălucitoare */
 .intro-electricity.active.intensify .lightning {
     animation:
         lightning-flicker 0.07s infinite,
@@ -912,7 +901,6 @@ html, body {
     filter: blur(0.3px) brightness(1.5);
 }
 
-/* EXPLOZIE MARE, cu inel de shockwave alb suplimentar */
 .intro-explosion {
     position: absolute;
     top: 50%;
@@ -994,10 +982,6 @@ html, body {
     );
 }
 
-/* ============================================================
-   BILE DE ELECTRICITATE — apar random, ezită verde/roșu, apoi
-   (la succes) se contopesc într-o singură bilă care devine uriașă
-   ============================================================ */
 .electric-orb {
     position: absolute;
     width: 56px;
@@ -1034,7 +1018,6 @@ html, body {
     box-shadow: 0 0 34px var(--error), 0 0 70px var(--error-glow);
 }
 
-/* bila unică rezultată din contopire — devine mare (~75% din ecran) */
 .electric-orb.giant {
     width: 75vmin;
     height: 75vmin;
@@ -1044,7 +1027,6 @@ html, body {
         inset 0 0 80px rgba(0, 255, 136, 0.5);
 }
 
-/* zoom in — bila crește peste dimensiunea ecranului și se stinge în alb */
 .electric-orb.zoom-in {
     width: 400vmax;
     height: 400vmax;
@@ -1056,16 +1038,12 @@ html, body {
     opacity: 0;
 }
 
-/* eșec — bilele pur și simplu se sting, nu se contopesc */
 .electric-orb.fizzle {
     transform: translate(-50%, -50%) scale(0);
     opacity: 0;
     transition: transform 0.5s var(--ease-smooth), opacity 0.5s ease;
 }
 
-/* ============================================================
-   LITERELE "MAXGAMESTORE" — formate una câte una, din scântei
-   ============================================================ */
 .mgs-letter {
     display: inline-block;
     opacity: 0;
@@ -1083,7 +1061,6 @@ html, body {
     filter: blur(0);
 }
 
-/* VORTEX, cu swirl interior rotativ (conic-gradient) */
 .intro-vortex {
     position: absolute;
     width: 150px;
@@ -1172,7 +1149,6 @@ html, body {
     }
 }
 
-/* ROTIRE ECRAN COMPLET (sincronizat cu durata vortexului: 4s) */
 .intro-container.rotating {
     animation: screen-rotate-full 4s var(--ease-expo) forwards;
 }
@@ -1190,7 +1166,6 @@ html, body {
     }
 }
 
-/* TEXT MAXGAMESTORE, cu efect de glitch / aberație cromatică */
 .intro-text {
     position: absolute;
     top: 50%;
@@ -1205,8 +1180,6 @@ html, body {
     opacity: 1;
 }
 
-/* micșorează și zboară spre punctul țintă (ex: bara principală din main) —
-   --fly-x/--fly-y sunt setate din JS cu poziția exactă a țintei */
 .intro-text.fly-out {
     transform: translate(calc(-50% + var(--fly-x, 0px)), calc(-50% + var(--fly-y, 0px))) scale(0.12);
     opacity: 0;
@@ -1312,6 +1285,36 @@ html, body {
     font-size: 16px;
 }
 
+.user-rank {
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 11px;
+    padding: 3px 8px;
+    background: rgba(255, 215, 0, 0.08);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    border-radius: 6px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.user-rank.owner {
+    color: #ffd700;
+    border-color: #ffd700;
+    background: rgba(255, 215, 0, 0.15);
+}
+
+.user-rank.admin {
+    color: #ff0044;
+    border-color: #ff0044;
+    background: rgba(255, 0, 68, 0.15);
+}
+
+.user-rank.developer {
+    color: #33aaff;
+    border-color: #33aaff;
+    background: rgba(51, 170, 255, 0.15);
+}
+
 .user-luna {
     color: var(--accent);
     font-weight: 600;
@@ -1320,16 +1323,6 @@ html, body {
     background: rgba(255, 215, 0, 0.1);
     border: 1px solid rgba(255, 215, 0, 0.3);
     border-radius: 8px;
-}
-
-.user-luna.luna-pulse {
-    animation: luna-pulse 0.4s var(--ease-spring);
-}
-
-@keyframes luna-pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.15); }
-    100% { transform: scale(1); }
 }
 
 .main-bar-right {
@@ -1373,21 +1366,8 @@ html, body {
 .main-content {
     flex: 1;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-}
-
-/* heading inserat dinamic din JS după animația de succes, deasupra
-   placeholder-ului existent — aici userul va pune conținutul real */
-.main-heading {
-    color: var(--accent);
-    font-size: 28px;
-    font-weight: 900;
-    letter-spacing: 4px;
-    text-shadow: 0 0 20px var(--accent-glow);
-    animation: bar-slide-in 0.6s var(--ease-expo);
 }
 
 .placeholder-text {
@@ -1397,10 +1377,135 @@ html, body {
 }
 
 /* ============================================================
+   LANGUAGE SELECTOR (dreapta-jos)
+   ============================================================ */
+.language-selector {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.lang-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(22, 22, 30, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 25px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.lang-btn:hover {
+    border-color: var(--accent);
+    box-shadow: 0 4px 25px rgba(255, 215, 0, 0.3);
+    transform: translateY(-2px);
+}
+
+.lang-flag {
+    font-size: 18px;
+}
+
+.lang-code {
+    letter-spacing: 1px;
+}
+
+.lang-arrow {
+    font-size: 10px;
+    color: var(--text-muted);
+    transition: transform 0.3s;
+}
+
+.lang-btn.open .lang-arrow {
+    transform: rotate(180deg);
+}
+
+.lang-dropdown {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    right: 0;
+    min-width: 220px;
+    max-height: 400px;
+    overflow-y: auto;
+    background: rgba(22, 22, 30, 0.98);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 15px;
+    padding: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lang-dropdown:not(.hidden) {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.lang-dropdown::-webkit-scrollbar {
+    width: 6px;
+}
+
+.lang-dropdown::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.lang-dropdown::-webkit-scrollbar-thumb {
+    background: rgba(255, 215, 0, 0.3);
+    border-radius: 3px;
+}
+
+.lang-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.lang-option:hover {
+    background: rgba(255, 215, 0, 0.1);
+    color: var(--accent);
+}
+
+.lang-option.active {
+    background: rgba(255, 215, 0, 0.15);
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.lang-option-flag {
+    font-size: 18px;
+}
+
+.lang-option-name {
+    flex: 1;
+}
+
+.lang-option-code {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+}
+
+/* ============================================================
    ACCESIBILITATE
    ============================================================ */
-
-/* focus vizibil pentru navigare cu tastatura — nu doar cu mouse-ul */
 a:focus-visible,
 button:focus-visible,
 input:focus-visible {
@@ -1408,11 +1513,6 @@ input:focus-visible {
     outline-offset: 2px;
 }
 
-/* Persoanele cu prefers-reduced-motion pot avea sensibilitate la mișcare
-   sau la lumini intermitente (fulgerul din animația 2 poate fi un
-   trigger real pentru epilepsie fotosensibilă). Reducem orice animație
-   CSS la aproape instant. Partea de canvas (particule/fulgere pe
-   canvas) e oprită separat din JS — vezi REDUCE_MOTION în login.js. */
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
         animation-duration: 0.01ms !important;
@@ -1438,5 +1538,13 @@ input:focus-visible {
     .intro-text h1 {
         font-size: 40px;
         letter-spacing: 4px;
+    }
+    .language-selector {
+        bottom: 15px;
+        right: 15px;
+    }
+    .lang-btn {
+        padding: 8px 14px;
+        font-size: 13px;
     }
 }
