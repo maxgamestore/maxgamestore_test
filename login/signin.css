@@ -1,11 +1,4 @@
-/* ============================================================
-   RESET + VARIABILE
-   ============================================================ */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
     --bg-dark: #0a0a0f;
@@ -20,10 +13,7 @@
     --success: #00ff88;
     --success-glow: rgba(0, 255, 136, 0.6);
     --error: #ff0044;
-    --error-glow: rgba(255, 0, 68, 0.6);
     --purple: #6a0dad;
-    --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
-    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 html, body {
@@ -37,6 +27,9 @@ html, body {
 
 .hidden { display: none !important; }
 
+/* ============================================================
+   CONTAINERS
+   ============================================================ */
 .signin-container {
     width: 100%;
     height: 100%;
@@ -52,7 +45,7 @@ html, body {
 }
 
 /* ============================================================
-   FORM SIDE (STÂNGA)
+   FORM SIDE
    ============================================================ */
 .signin-form-side {
     width: 40%;
@@ -65,12 +58,6 @@ html, body {
     z-index: 2;
     position: relative;
     overflow-y: auto;
-}
-
-.signin-form-side::-webkit-scrollbar { width: 6px; }
-.signin-form-side::-webkit-scrollbar-thumb {
-    background: rgba(255, 215, 0, 0.3);
-    border-radius: 3px;
 }
 
 .signin-form-wrapper {
@@ -92,8 +79,8 @@ html, body {
 }
 
 @keyframes logo-breathe {
-    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 20px var(--accent-glow)); }
-    50% { transform: scale(1.05); filter: drop-shadow(0 0 34px var(--accent-glow)); }
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
 }
 
 .logo-text {
@@ -135,7 +122,7 @@ html, body {
     color: var(--text-primary);
     font-size: 14px;
     font-family: inherit;
-    transition: border-color 0.3s, box-shadow 0.3s;
+    transition: border-color 0.3s;
 }
 
 .form-group input:focus {
@@ -143,8 +130,6 @@ html, body {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-glow);
 }
-
-.form-group input::placeholder { color: var(--text-muted); }
 
 .form-hint {
     font-size: 11px;
@@ -169,7 +154,6 @@ html, body {
     width: 0;
     background: var(--error);
     transition: width 0.3s, background 0.3s;
-    border-radius: 2px;
 }
 
 .strength-bar.weak { background: #ff0044; width: 33%; }
@@ -211,28 +195,6 @@ html, body {
     transform: none;
 }
 
-.btn-secondary {
-    display: inline-block;
-    padding: 12px 30px;
-    background: transparent;
-    border: 2px solid var(--text-secondary);
-    color: var(--text-primary);
-    text-decoration: none;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 1px;
-    transition: all 0.3s;
-    cursor: pointer;
-    margin-top: 20px;
-}
-
-.btn-secondary:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-    transform: translateY(-2px);
-}
-
 .form-switch {
     text-align: center;
     margin-top: 20px;
@@ -249,9 +211,6 @@ html, body {
 
 .form-switch a:hover { text-decoration: underline; }
 
-/* ============================================================
-   DIVIDER
-   ============================================================ */
 .divider {
     position: absolute;
     left: 40%;
@@ -260,14 +219,10 @@ html, body {
     height: 120%;
     background: linear-gradient(180deg, transparent, var(--accent), transparent);
     transform: rotate(5deg);
-    transform-origin: center;
     z-index: 3;
     box-shadow: 0 0 20px var(--accent-glow);
 }
 
-/* ============================================================
-   IMAGE SIDE (DREAPTA)
-   ============================================================ */
 .signin-image-side {
     width: 60%;
     height: 100%;
@@ -278,53 +233,29 @@ html, body {
     mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
 }
 
-.signin-image-side .bg-image {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    background-size: cover;
-    background-position: center;
-    opacity: 0;
-    transition: opacity 1.2s ease;
-    transform: scale(1);
-}
-
-.signin-image-side .bg-image.active {
-    opacity: 1;
-    animation: ken-burns 4.6s ease-out forwards;
-}
-
-@keyframes ken-burns {
-    from { transform: scale(1); }
-    to { transform: scale(1.08); }
-}
-
 .image-overlay {
     position: absolute;
     inset: 0;
     background: linear-gradient(135deg, rgba(10,10,15,0.4) 0%, transparent 50%, rgba(10,10,15,0.4) 100%);
-    pointer-events: none;
-    z-index: 2;
 }
 
 /* ============================================================
-   EMAIL SENT VIEW
+   OTP CARD
    ============================================================ */
-.email-sent-card,
+.otp-card,
 .verified-card {
     margin: auto;
     background: rgba(22, 22, 30, 0.95);
     backdrop-filter: blur(20px);
     border-radius: 20px;
-    padding: 50px 40px;
-    max-width: 480px;
+    padding: 45px 40px;
+    max-width: 440px;
     width: 90%;
     text-align: center;
     animation: card-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.email-sent-card {
+.otp-card {
     border: 1px solid var(--accent);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px var(--accent-glow);
 }
@@ -339,13 +270,14 @@ html, body {
     to { opacity: 1; transform: scale(1) rotate(0deg); }
 }
 
-.email-icon,
+.otp-icon,
 .verified-icon {
-    font-size: 80px;
-    margin-bottom: 20px;
+    font-size: 70px;
+    display: block;
+    margin-bottom: 15px;
 }
 
-.email-icon {
+.otp-icon {
     animation: icon-pulse 2s ease-in-out infinite;
     filter: drop-shadow(0 0 30px var(--accent-glow));
 }
@@ -366,18 +298,16 @@ html, body {
     50% { transform: scale(1.08); }
 }
 
-.email-title,
+.otp-header h2,
 .verified-title {
-    font-size: 26px;
+    font-size: 22px;
     font-weight: 900;
     letter-spacing: 3px;
     margin-bottom: 20px;
 }
 
-.email-title {
-    background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+.otp-header h2 {
+    color: var(--accent);
 }
 
 .verified-title {
@@ -386,62 +316,90 @@ html, body {
     -webkit-text-fill-color: transparent;
 }
 
-.email-message,
+.otp-message,
 .verified-message,
-.email-instructions,
 .verified-instructions {
     color: var(--text-secondary);
     font-size: 14px;
     line-height: 1.7;
-    margin-bottom: 15px;
-}
-
-.email-address,
-.verified-username {
-    font-size: 18px;
-    font-weight: 700;
-    padding: 12px 20px;
-    border-radius: 10px;
-    display: inline-block;
     margin-bottom: 20px;
-    word-break: break-all;
 }
 
-.email-address {
+.otp-message strong {
     color: var(--accent);
-    background: rgba(255, 215, 0, 0.1);
-    border: 1px solid rgba(255, 215, 0, 0.3);
+    font-weight: 700;
+    font-size: 15px;
 }
 
 .verified-username {
     color: var(--success);
+    font-size: 22px;
+    font-weight: 700;
+    padding: 12px 24px;
     background: rgba(0, 255, 136, 0.1);
     border: 1px solid rgba(0, 255, 136, 0.3);
+    border-radius: 10px;
+    display: inline-block;
+    margin-bottom: 25px;
     text-shadow: 0 0 15px var(--success-glow);
-    font-size: 22px;
 }
 
-.divider-line {
-    width: 60px;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--accent), transparent);
-    margin: 25px auto;
+.otp-inputs {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 20px;
 }
 
-.email-spinner,
+.otp-digit {
+    width: 48px;
+    height: 60px;
+    background: var(--bg-input);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    color: var(--accent);
+    font-size: 24px;
+    font-weight: 800;
+    text-align: center;
+    font-family: inherit;
+    transition: all 0.3s;
+}
+
+.otp-digit:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    transform: scale(1.05);
+}
+
+.otp-digit.filled {
+    border-color: var(--success);
+    box-shadow: 0 0 15px var(--success-glow);
+}
+
+.otp-resend {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top: 20px;
+}
+
+.otp-resend a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    margin-left: 5px;
+}
+
+.otp-resend a:hover { text-decoration: underline; }
+
 .verified-spinner {
     width: 40px;
     height: 40px;
     margin: 25px auto;
-    border: 3px solid rgba(255, 215, 0, 0.2);
-    border-top: 3px solid var(--accent);
+    border: 3px solid rgba(0, 255, 136, 0.2);
+    border-top: 3px solid var(--success);
     border-radius: 50%;
     animation: spin 1s linear infinite;
-}
-
-.verified-spinner {
-    border-color: rgba(0, 255, 136, 0.2);
-    border-top-color: var(--success);
 }
 
 @keyframes spin {
@@ -449,104 +407,6 @@ html, body {
     100% { transform: rotate(360deg); }
 }
 
-.email-waiting {
-    color: var(--text-muted);
-    font-size: 13px;
-    animation: fade-pulse 2s ease-in-out infinite;
-}
-
-@keyframes fade-pulse {
-    0%, 100% { opacity: 0.5; }
-    50% { opacity: 1; }
-}
-
-/* ============================================================
-   LANGUAGE SELECTOR
-   ============================================================ */
-.language-selector {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 99999;
-}
-
-.lang-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background: rgba(22, 22, 30, 0.95);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 215, 0, 0.3);
-    border-radius: 25px;
-    color: var(--text-primary);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-family: inherit;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-}
-
-.lang-btn:hover {
-    border-color: var(--accent);
-    transform: translateY(-2px);
-}
-
-.lang-flag { font-size: 18px; }
-.lang-arrow { font-size: 10px; color: var(--text-muted); }
-.lang-btn.open .lang-arrow { transform: rotate(180deg); }
-
-.lang-dropdown {
-    position: absolute;
-    bottom: calc(100% + 10px);
-    right: 0;
-    min-width: 220px;
-    max-height: 400px;
-    overflow-y: auto;
-    background: rgba(22, 22, 30, 0.98);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 215, 0, 0.3);
-    border-radius: 15px;
-    padding: 8px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-    opacity: 0;
-    transform: translateY(10px);
-    pointer-events: none;
-    transition: all 0.3s;
-}
-
-.lang-dropdown:not(.hidden) {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-}
-
-.lang-option {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    border-radius: 10px;
-    color: var(--text-secondary);
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.lang-option:hover,
-.lang-option.active {
-    background: rgba(255, 215, 0, 0.1);
-    color: var(--accent);
-}
-
-.lang-option-flag { font-size: 18px; }
-.lang-option-name { flex: 1; }
-.lang-option-code { font-size: 11px; color: var(--text-muted); }
-
-/* ============================================================
-   SHAKE
-   ============================================================ */
 @keyframes shake {
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(-10px); }
@@ -555,11 +415,9 @@ html, body {
 
 .shake { animation: shake 0.4s ease-in-out; }
 
-/* ============================================================
-   RESPONSIVE
-   ============================================================ */
 @media (max-width: 900px) {
     .signin-form-side { width: 100%; }
     .signin-image-side { display: none; }
     .divider { display: none; }
+    .otp-digit { width: 42px; height: 54px; font-size: 20px; }
 }
