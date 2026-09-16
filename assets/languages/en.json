@@ -1,1 +1,52 @@
-
+{
+  "login": {
+    "title": "WORLD OF FIGHTS",
+    "subtitle": "MAXGAMESTORE CORPORATION",
+    "username": "Username",
+    "password": "Password",
+    "login_btn": "LOGIN",
+    "no_account": "Don't have an account?",
+    "sign_in_btn": "Sign Up",
+    "error_username": "Username: 3-24 characters",
+    "error_password": "Password: minimum 8 characters",
+    "error_server": "Server connection error"
+  },
+  "signin": {
+    "title": "SIGN UP",
+    "username": "Username",
+    "email": "Email",
+    "password": "Password",
+    "confirm": "Confirm Password",
+    "signin_btn": "CREATE ACCOUNT",
+    "have_account": "Already have an account?",
+    "login_btn": "Login",
+    "error_username": "Username: 3-24 characters",
+    "error_email": "Email is required",
+    "error_password": "Password: minimum 8 characters, 1 uppercase, 1 number, 1 symbol",
+    "error_confirm": "Passwords don't match",
+    "error_server": "Server connection error"
+  },
+  "verify": {
+    "title": "VERIFY YOUR EMAIL",
+    "message": "We sent a 6-digit code to:",
+    "verify_btn": "VERIFY",
+    "resend": "Didn't receive the code?",
+    "resend_btn": "Resend",
+    "error_code": "Please enter the complete 6-digit code!"
+  },
+  "main": {
+    "welcome": "WELCOME!",
+    "feed_title": "📰 FEED",
+    "placeholder": "Content coming soon...",
+    "shop": "Shop",
+    "info": "Info",
+    "games": "Games",
+    "logout": "Logout"
+  },
+  "ranks": {
+    "owner": "OWNER",
+    "admin": "ADMIN",
+    "developer": "DEVELOPER",
+    "user": "USER"
+  }
+}
