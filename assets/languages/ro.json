@@ -1,1 +1,52 @@
-
+{
+  "login": {
+    "title": "WORLD OF FIGHTS",
+    "subtitle": "MAXGAMESTORE CORPORATION",
+    "username": "Username",
+    "password": "Parolă",
+    "login_btn": "LOGIN",
+    "no_account": "Nu ai cont?",
+    "sign_in_btn": "Creează cont",
+    "error_username": "Username: 3-24 caractere",
+    "error_password": "Parola: minim 8 caractere",
+    "error_server": "Eroare conexiune server"
+  },
+  "signin": {
+    "title": "CREEAZĂ CONT",
+    "username": "Username",
+    "email": "Email",
+    "password": "Parolă",
+    "confirm": "Confirmă Parola",
+    "signin_btn": "CREEAZĂ CONT",
+    "have_account": "Ai deja cont?",
+    "login_btn": "Login",
+    "error_username": "Username: 3-24 caractere",
+    "error_email": "Email obligatoriu",
+    "error_password": "Parola: minim 8 caractere, 1 majusculă, 1 cifră, 1 simbol",
+    "error_confirm": "Parolele nu se potrivesc",
+    "error_server": "Eroare conexiune server"
+  },
+  "verify": {
+    "title": "VERIFICĂ EMAIL-UL",
+    "message": "Am trimis un cod de 6 cifre la:",
+    "verify_btn": "VERIFICĂ",
+    "resend": "Nu ai primit codul?",
+    "resend_btn": "Retrimite",
+    "error_code": "Introdu codul complet de 6 cifre!"
+  },
+  "main": {
+    "welcome": "BINE AI VENIT!",
+    "feed_title": "📰 FEED",
+    "placeholder": "Conținut în curând...",
+    "shop": "Shop",
+    "info": "Info",
+    "games": "Games",
+    "logout": "Logout"
+  },
+  "ranks": {
+    "owner": "OWNER",
+    "admin": "ADMIN",
+    "developer": "DEVELOPER",
+    "user": "USER"
+  }
+}
