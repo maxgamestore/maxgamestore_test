@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ro">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,29 +20,30 @@
                 <div class="login-form-wrapper">
                     <div class="logo">
                         <span class="logo-icon">⚔️</span>
-                        <h1 class="logo-text">WORLD OF FIGHTS</h1>
+                        <h1 class="logo-text" data-i18n="login.title">WORLD OF FIGHTS</h1>
+                        <p class="logo-subtitle" data-i18n="login.subtitle">MAXGAMESTORE CORPORATION</p>
                     </div>
 
                     <form id="login-form" autocomplete="off">
                         <div class="form-group">
-                            <label>Username</label>
+                            <label data-i18n="login.username">Username</label>
                             <input type="text" id="login-username" required minlength="3" maxlength="24" placeholder="username">
                         </div>
 
                         <div class="form-group">
-                            <label>Password</label>
+                            <label data-i18n="login.password">Password</label>
                             <input type="password" id="login-password" required minlength="8" placeholder="••••••••">
                         </div>
 
                         <div class="form-error" id="login-error"></div>
 
-                        <button type="submit" class="btn-primary" id="login-btn">
+                        <button type="submit" class="btn-primary" id="login-btn" data-i18n="login.login_btn">
                             LOGIN
                         </button>
 
                         <p class="form-switch">
-                            Nu ai cont?
-                            <a href="#" id="switch-register">Creează unul</a>
+                            <span data-i18n="login.no_account">Don't have an account?</span>
+                            <a href="signin.html" data-i18n="login.sign_in_btn">Sign Up</a>
                         </p>
                     </form>
                 </div>
@@ -81,11 +82,11 @@
             <div class="otp-card">
                 <div class="otp-header">
                     <span class="otp-icon">📧</span>
-                    <h2>VERIFICĂ EMAIL-UL</h2>
+                    <h2 data-i18n="verify.title">VERIFY YOUR EMAIL</h2>
                 </div>
 
                 <p class="otp-message">
-                    Am trimis un cod de 6 cifre la:<br>
+                    <span data-i18n="verify.message">We sent a 6-digit code to:</span><br>
                     <strong id="otp-email">user@example.com</strong>
                 </p>
 
@@ -100,13 +101,13 @@
 
                 <div class="form-error" id="otp-error"></div>
 
-                <button type="button" class="btn-primary" id="otp-verify-btn">
+                <button type="button" class="btn-primary" id="otp-verify-btn" data-i18n="verify.verify_btn">
                     VERIFY
                 </button>
 
                 <p class="otp-resend">
-                    Nu ai primit codul?
-                    <a href="#" id="otp-resend">Retrimite</a>
+                    <span data-i18n="verify.resend">Didn't receive the code?</span>
+                    <a href="#" id="otp-resend" data-i18n="verify.resend_btn">Resend</a>
                 </p>
             </div>
 
@@ -155,19 +156,34 @@
                 <div class="main-bar-left">
                     <span class="user-icon">👤</span>
                     <span class="user-name" id="main-username">Player</span>
+                    <span class="user-rank" id="main-rank">USER</span>
                     <span class="user-luna">💰 <span id="main-luna">100</span></span>
                 </div>
                 <div class="main-bar-right">
-                    <a href="#" class="menu-link">Shop</a>
-                    <a href="#" class="menu-link">Info</a>
-                    <a href="#" class="menu-link">Games</a>
+                    <a href="#" class="menu-link" data-i18n="main.shop">Shop</a>
+                    <a href="#" class="menu-link" data-i18n="main.info">Info</a>
+                    <a href="#" class="menu-link" data-i18n="main.games">Games</a>
                 </div>
             </div>
 
             <div class="main-content">
-                <p class="placeholder-text">Conținut în curând...</p>
+                <p class="placeholder-text" data-i18n="main.placeholder">Content coming soon...</p>
             </div>
 
+        </div>
+    </div>
+
+    <!-- ============================================================
+         LANGUAGE SELECTOR (dreapta-jos)
+         ============================================================ -->
+    <div class="language-selector" id="language-selector">
+        <button class="lang-btn" id="lang-btn">
+            <span class="lang-flag" id="lang-flag">🇬🇧</span>
+            <span class="lang-code" id="lang-code">EN</span>
+            <span class="lang-arrow">▼</span>
+        </button>
+        <div class="lang-dropdown hidden" id="lang-dropdown">
+            <!-- Se populează din JS -->
         </div>
     </div>
 
