@@ -10,12 +10,10 @@
 <body>
 
     <!-- ============================================================
-         STAGE 1: LOGIN (split 40/60)
+         STAGE 1: LOGIN
          ============================================================ -->
     <div id="stage-login" class="stage active">
         <div class="login-container">
-
-            <!-- STÂNGA: FORM (40%) -->
             <div class="login-form-side">
                 <div class="login-form-wrapper">
                     <div class="logo">
@@ -49,36 +47,28 @@
                 </div>
             </div>
 
-            <!-- SEPARATOR OBLIC -->
             <div class="divider"></div>
 
-            <!-- DREAPTA: IMAGINI (60%) -->
             <div class="login-image-side" id="login-image-side">
                 <div class="image-overlay"></div>
             </div>
-
         </div>
 
-        <!-- ANIMAȚIE 1 (se activează la click LOGIN) -->
         <div id="anim1" class="anim1 hidden">
             <div class="anim1-bar" id="anim1-bar"></div>
             <div class="anim1-text" id="anim1-user">username</div>
             <div class="anim1-text" id="anim1-pass">password</div>
             <div class="anim1-ui-burst" id="anim1-ui-burst"></div>
         </div>
-
     </div>
 
     <!-- ============================================================
-         STAGE 2: VERIFY (OTP)
+         STAGE 2: VERIFY
          ============================================================ -->
     <div id="stage-verify" class="stage">
         <div class="verify-container">
-
-            <!-- IMAGINE CARE SE MIȘCĂ -->
             <div class="verify-bg" id="verify-bg"></div>
 
-            <!-- CARD OTP -->
             <div class="otp-card">
                 <div class="otp-header">
                     <span class="otp-icon">📧</span>
@@ -110,17 +100,14 @@
                     <a href="#" id="otp-resend" data-i18n="verify.resend_btn">Resend</a>
                 </p>
             </div>
-
         </div>
     </div>
 
     <!-- ============================================================
-         STAGE 3: INTRO (ANIMAȚIA 2 - ELECTRICITATE)
+         STAGE 3: INTRO
          ============================================================ -->
     <div id="stage-intro" class="stage">
         <div class="intro-container">
-
-            <!-- ELECTRICITATE DETALIATĂ (8 fulgere) -->
             <div class="intro-electricity" id="intro-electricity">
                 <div class="lightning" id="lightning-1"></div>
                 <div class="lightning" id="lightning-2"></div>
@@ -132,26 +119,20 @@
                 <div class="lightning" id="lightning-8"></div>
             </div>
 
-            <!-- EXPLOZIE MARE -->
             <div class="intro-explosion" id="intro-explosion"></div>
-
-            <!-- VORTEX (GAURA NEAGRĂ) -->
             <div class="intro-vortex" id="intro-vortex"></div>
 
-            <!-- TEXT MAXGAMESTORE -->
             <div class="intro-text" id="intro-text">
                 <h1>MAXGAMESTORE</h1>
             </div>
-
         </div>
     </div>
 
     <!-- ============================================================
-         STAGE 4: MAIN (UI BAR)
+         STAGE 4: MAIN
          ============================================================ -->
     <div id="stage-main" class="stage">
         <div class="main-container">
-
             <div class="main-bar">
                 <div class="main-bar-left">
                     <span class="user-icon">👤</span>
@@ -169,12 +150,11 @@
             <div class="main-content">
                 <p class="placeholder-text" data-i18n="main.placeholder">Content coming soon...</p>
             </div>
-
         </div>
     </div>
 
     <!-- ============================================================
-         LANGUAGE SELECTOR (dreapta-jos)
+         LANGUAGE SELECTOR — ÎN AFARA STAGE-URILOR!
          ============================================================ -->
     <div class="language-selector" id="language-selector">
         <button class="lang-btn" id="lang-btn">
@@ -182,13 +162,11 @@
             <span class="lang-code" id="lang-code">EN</span>
             <span class="lang-arrow">▼</span>
         </button>
-        <div class="lang-dropdown hidden" id="lang-dropdown">
-            <!-- Se populează din JS -->
-        </div>
+        <div class="lang-dropdown hidden" id="lang-dropdown"></div>
     </div>
 
     <!-- ============================================================
-         AUDIO ELEMENTS
+         AUDIO
          ============================================================ -->
     <audio id="sfx-click" src="../assets/sounds/click.mp3" preload="auto"></audio>
     <audio id="sfx-electric" src="../assets/sounds/electric_short.mp3" preload="auto"></audio>
