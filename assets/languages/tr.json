@@ -1,1 +1,53 @@
 
+{
+  "login": {
+    "title": "DÖVÜŞ DÜNYASI",
+    "subtitle": "MAXGAMESTORE ŞİRKETİ",
+    "username": "Kullanıcı Adı",
+    "password": "Şifre",
+    "login_btn": "GİRİŞ YAP",
+    "no_account": "Hesabın yok mu?",
+    "sign_in_btn": "Kayıt Ol",
+    "error_username": "Kullanıcı adı: 3-24 karakter",
+    "error_password": "Şifre: en az 8 karakter",
+    "error_server": "Sunucu bağlantı hatası"
+  },
+  "signin": {
+    "title": "KAYIT OL",
+    "username": "Kullanıcı Adı",
+    "email": "E-posta",
+    "password": "Şifre",
+    "confirm": "Şifreyi Onayla",
+    "signin_btn": "HESAP OLUŞTUR",
+    "have_account": "Zaten hesabın var mı?",
+    "login_btn": "Giriş Yap",
+    "error_username": "Kullanıcı adı: 3-24 karakter",
+    "error_email": "E-posta gerekli",
+    "error_password": "Şifre: en az 8 karakter, 1 büyük harf, 1 rakam, 1 sembol",
+    "error_confirm": "Şifreler eşleşmiyor",
+    "error_server": "Sunucu bağlantı hatası"
+  },
+  "verify": {
+    "title": "E-POSTANI DOĞRULA",
+    "message": "6 haneli bir kod gönderdik:",
+    "verify_btn": "DOĞRULA",
+    "resend": "Kodu almadın mı?",
+    "resend_btn": "Tekrar Gönder",
+    "error_code": "Lütfen 6 haneli kodun tamamını girin!"
+  },
+  "main": {
+    "welcome": "HOŞ GELDİN!",
+    "feed_title": "📰 AKIŞ",
+    "placeholder": "İçerik yakında...",
+    "shop": "Mağaza",
+    "info": "Bilgi",
+    "games": "Oyunlar",
+    "logout": "Çıkış Yap"
+  },
+  "ranks": {
+    "owner": "SAHİP",
+    "admin": "YÖNETİCİ",
+    "developer": "GELİŞTİRİCİ",
+    "user": "KULLANICI"
+  }
+}
