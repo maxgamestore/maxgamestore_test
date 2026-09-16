@@ -1,1 +1,53 @@
 
+{
+  "login": {
+    "title": "WELT DER KÄMPFE",
+    "subtitle": "MAXGAMESTORE UNTERNEHMEN",
+    "username": "Benutzername",
+    "password": "Passwort",
+    "login_btn": "ANMELDEN",
+    "no_account": "Noch kein Konto?",
+    "sign_in_btn": "Registrieren",
+    "error_username": "Benutzername: 3-24 Zeichen",
+    "error_password": "Passwort: mindestens 8 Zeichen",
+    "error_server": "Serververbindungsfehler"
+  },
+  "signin": {
+    "title": "REGISTRIEREN",
+    "username": "Benutzername",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "confirm": "Passwort bestätigen",
+    "signin_btn": "KONTO ERSTELLEN",
+    "have_account": "Bereits ein Konto?",
+    "login_btn": "Anmelden",
+    "error_username": "Benutzername: 3-24 Zeichen",
+    "error_email": "E-Mail erforderlich",
+    "error_password": "Passwort: mindestens 8 Zeichen, 1 Großbuchstabe, 1 Zahl, 1 Symbol",
+    "error_confirm": "Passwörter stimmen nicht überein",
+    "error_server": "Serververbindungsfehler"
+  },
+  "verify": {
+    "title": "E-MAIL BESTÄTIGEN",
+    "message": "Wir haben einen 6-stelligen Code gesendet an:",
+    "verify_btn": "BESTÄTIGEN",
+    "resend": "Code nicht erhalten?",
+    "resend_btn": "Erneut senden",
+    "error_code": "Bitte geben Sie den vollständigen 6-stelligen Code ein!"
+  },
+  "main": {
+    "welcome": "WILLKOMMEN!",
+    "feed_title": "📰 FEED",
+    "placeholder": "Inhalt kommt bald...",
+    "shop": "Shop",
+    "info": "Info",
+    "games": "Spiele",
+    "logout": "Abmelden"
+  },
+  "ranks": {
+    "owner": "BESITZER",
+    "admin": "ADMIN",
+    "developer": "ENTWICKLER",
+    "user": "BENUTZER"
+  }
+}
