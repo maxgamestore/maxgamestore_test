@@ -432,18 +432,25 @@ function buildLetterSpans(h1, text) {
     return spans;
 }
 
-// Inserează/actualizează heading-ul "MAXGAMESTORE" din ecranul principal,
-// deasupra placeholder-ului existent — acolo unde userul va pune conținut
-function setMainHeading(text) {
-    const content = document.querySelector('.main-content');
-    if (!content) return;
-    let heading = content.querySelector('.main-heading');
-    if (!heading) {
-        heading = document.createElement('h2');
-        heading.className = 'main-heading';
-        content.insertBefore(heading, content.firstChild);
-    }
-    heading.textContent = text;
+// Predă ștafeta paginii REALE de main (fișier separat: main/main.html),
+// nu unui stage intern din login.html. Salvează username/luna într-un
+// loc pe care main.js îl poate citi imediat la încărcare (fără să aștepte
+// propriul fetch), plus un fade scurt, ca navigarea să nu simtă ca un
+// reload brusc.
+function goToRealMain() {
+    try {
+        sessionStorage.setItem('wof_arrival', JSON.stringify({
+            username: (currentUser && currentUser.username) || '',
+            luna: (currentUser && currentUser.luna) || 100
+        }));
+    } catch (e) {}
+
+    document.body.style.transition = 'opacity 0.4s ease';
+    document.body.style.opacity = '0';
+
+    return sleep(420).then(() => {
+        window.location.href = '../main/main.html';
+    });
 }
 
 // ============================================================
@@ -1069,11 +1076,7 @@ function playAnimation2Reduced(isSuccess) {
 
             setTimeout(() => {
                 text.classList.remove('show');
-                document.getElementById('main-username').textContent = currentUser.username;
-                setLunaCount(currentUser.luna || 100);
-                setMainHeading('MAXGAMESTORE');
-                goToStage('main');
-                resolve();
+                goToRealMain().then(resolve);
             }, 1400);
         } else {
             playSound('sfx-error', 0.6);
@@ -1108,8 +1111,7 @@ const ANIM2_TIMING = {
         letterStagger: 110,       // decalaj între apariția literelor
         letterSettle: 400,        // timp de așezare după ultima literă
         holdAfterText: 3000,      // așteptare cerută explicit, după ce tot textul s-a format
-        flyDuration: 900,         // zboară micșorat spre bara principală
-        revealDuration: 900       // reveal-ul final spre stage-ul "main"
+        flyDuration: 900          // zboară micșorat spre colțul din stânga-sus
     },
     fail: {
         fizzleDuration: 550,      // bilele roșii pur și simplu se sting
@@ -1265,32 +1267,23 @@ async function playAnimation2(isSuccess) {
         playSound('sfx-electric-long', 0.5);
         await sleep(S.holdAfterText);
 
-        // Faza 11: micșorează și zboară spre bara principală din "main"
+        // Faza 11: micșorează și zboară spre colțul din stânga-sus — acolo
+        // unde va fi bara reală, pe pagina de main (nu mai depindem de
+        // stage-ul intern embedded, oricum abandonat la pasul următor)
         text.classList.remove('glitching');
-        const mainBar = document.querySelector('#stage-main .main-bar');
-        if (mainBar) {
-            const barRect = mainBar.getBoundingClientRect();
-            const targetX = barRect.left + barRect.width * 0.18;
-            const targetY = barRect.top + barRect.height / 2;
-            text.style.setProperty('--fly-x', (targetX - window.innerWidth / 2) + 'px');
-            text.style.setProperty('--fly-y', (targetY - window.innerHeight / 2) + 'px');
-        }
+        const targetX = window.innerWidth * 0.18;
+        const targetY = window.innerHeight * 0.09;
+        text.style.setProperty('--fly-x', (targetX - window.innerWidth / 2) + 'px');
+        text.style.setProperty('--fly-y', (targetY - window.innerHeight / 2) + 'px');
         playSound('sfx-whoosh', 0.5);
         text.classList.add('fly-out');
         await sleep(S.flyDuration);
 
-        // Faza 12: pregătim main + revelăm dintr-un punct apropiat de bară
+        // Faza 12: predăm ștafeta paginii REALE de main (fișier separat,
+        // navigare propriu-zisă) — nu doar un stage intern din login.html
         stopSound('sfx-electric-long');
-        document.getElementById('main-username').textContent = currentUser.username;
-        setLunaCount(currentUser.luna || 100);
-        setMainHeading('MAXGAMESTORE');
         destroyFxCanvas(canvas);
-
-        await revealStageFromCenter('main', {
-            duration: S.revealDuration,
-            originX: '18%',
-            originY: '8%'
-        });
+        await goToRealMain();
 
     } else {
         const F = T.fail;
