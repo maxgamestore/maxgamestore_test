@@ -3,19 +3,13 @@
 // ============================================================
 const SERVER_URL = "https://trimmer-chrome-landfall.ngrok-free.dev";
 const API = SERVER_URL + "/api";
-const LANG_PATH = "../assets/languages";
 
 // ============================================================
 //  STATE
 // ============================================================
 let currentDeviceId = generateDeviceId();
-let currentLang = "en";
-let translations = {};
-let supportedLanguages = [];
-let imageInterval = null;
-let imageIndex = 0;
-let imagesList = [];
-let verificationCheckInterval = null;
+let currentUsername = "";
+let currentEmail = "";
 
 // ============================================================
 //  DEVICE ID
@@ -33,7 +27,7 @@ function generateDeviceId() {
 // ============================================================
 //  FETCH WITH TIMEOUT
 // ============================================================
-async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
+async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
@@ -46,59 +40,11 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
 // ============================================================
 //  INIT
 // ============================================================
-document.addEventListener('DOMContentLoaded', async () => {
-    await initLanguage();
-    startImageSlideshow();
-
-    const params = new URLSearchParams(window.location.search);
-    const verified = params.get('verified');
-    const user = params.get('user');
-
-    if (verified === 'true' && user) {
-        await handleVerifiedArrival(user);
-    } else {
-        initSigninForm();
-    }
+document.addEventListener('DOMContentLoaded', () => {
+    initSigninForm();
+    initOTPInputs();
+    initOTPButtons();
 });
-
-// ============================================================
-//  HANDLE VERIFIED ARRIVAL
-// ============================================================
-async function handleVerifiedArrival(username) {
-    document.getElementById('signup-view').classList.add('hidden');
-    document.getElementById('verified-view').classList.remove('hidden');
-    document.getElementById('verified-username').textContent = username;
-
-    setTimeout(async () => {
-        try {
-            const res = await fetchWithTimeout(API + '/auto-login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: username, deviceId: currentDeviceId })
-            });
-            const data = await res.json();
-
-            if (data.success) {
-                localStorage.setItem('wof_session', JSON.stringify({
-                    username: data.username,
-                    token: data.token,
-                    sessionId: data.sessionId,
-                    rank: data.rank,
-                    email: data.email,
-                    luna: data.luna,
-                    lits: data.lits
-                }));
-
-                window.location.href = '../main/main.html';
-            } else {
-                window.location.href = 'login.html';
-            }
-        } catch (err) {
-            console.error('Auto-login failed:', err);
-            window.location.href = 'login.html';
-        }
-    }, 2000);
-}
 
 // ============================================================
 //  SIGNIN FORM
@@ -144,7 +90,7 @@ function initSigninForm() {
             const hint = document.getElementById('username-hint');
             const val = usernameInput.value.trim();
 
-            if (val.length === 0) {
+            if (!val) {
                 hint.textContent = '';
                 hint.className = 'form-hint';
                 return;
@@ -235,8 +181,9 @@ function initSigninForm() {
             const data = await res.json();
 
             if (data.success) {
-                showEmailSentView(email, username);
-                startVerificationCheck(username);
+                currentUsername = username;
+                currentEmail = email;
+                showOtpView(email);
             } else {
                 btn.disabled = false;
                 btn.textContent = 'CREATE ACCOUNT';
@@ -256,67 +203,193 @@ function initSigninForm() {
 }
 
 // ============================================================
-//  EMAIL SENT VIEW
+//  OTP VIEW
 // ============================================================
-function showEmailSentView(email, username) {
+function showOtpView(email) {
     document.getElementById('signup-view').classList.add('hidden');
-    document.getElementById('email-sent-view').classList.remove('hidden');
-    document.getElementById('sent-email').textContent = email;
-    sessionStorage.setItem('wof_pending_user', username);
+    document.getElementById('otp-view').classList.remove('hidden');
+    document.getElementById('otp-email').textContent = email;
+    document.querySelector('.otp-digit')?.focus();
 }
 
 // ============================================================
-//  VERIFICATION CHECK
+//  OTP INPUTS
 // ============================================================
-function startVerificationCheck(username) {
-    if (verificationCheckInterval) clearInterval(verificationCheckInterval);
+function initOTPInputs() {
+    const inputs = document.querySelectorAll('.otp-digit');
 
-    verificationCheckInterval = setInterval(async () => {
-        try {
-            const res = await fetch(API + '/check-verified/' + username);
-            const data = await res.json();
+    inputs.forEach((input, idx) => {
+        input.addEventListener('input', (e) => {
+            const val = e.target.value;
 
-            if (data.verified) {
-                clearInterval(verificationCheckInterval);
-
-                document.getElementById('email-sent-view').classList.add('hidden');
-                document.getElementById('verified-view').classList.remove('hidden');
-                document.getElementById('verified-username').textContent = username;
-
-                setTimeout(async () => {
-                    try {
-                        const loginRes = await fetchWithTimeout(API + '/auto-login', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ username: username, deviceId: currentDeviceId })
-                        });
-                        const loginData = await loginRes.json();
-
-                        if (loginData.success) {
-                            localStorage.setItem('wof_session', JSON.stringify({
-                                username: loginData.username,
-                                token: loginData.token,
-                                sessionId: loginData.sessionId,
-                                rank: loginData.rank,
-                                email: loginData.email,
-                                luna: loginData.luna,
-                                lits: loginData.lits
-                            }));
-
-                            window.location.href = '../main/main.html';
-                        } else {
-                            window.location.href = 'login.html';
-                        }
-                    } catch (err) {
-                        console.error('Auto-login failed:', err);
-                        window.location.href = 'login.html';
-                    }
-                }, 2000);
+            if (!/^\d*$/.test(val)) {
+                e.target.value = '';
+                return;
             }
-        } catch (err) {
-            // Ignoră
+
+            if (val.length === 1) {
+                input.classList.add('filled');
+                if (idx < inputs.length - 1) {
+                    inputs[idx + 1].focus();
+                }
+            } else {
+                input.classList.remove('filled');
+            }
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+                inputs[idx - 1].focus();
+            }
+        });
+
+        input.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const paste = (e.clipboardData || window.clipboardData).getData('text');
+            const digits = paste.replace(/\D/g, '').slice(0, 6);
+
+            digits.split('').forEach((digit, i) => {
+                if (inputs[i]) {
+                    inputs[i].value = digit;
+                    inputs[i].classList.add('filled');
+                }
+            });
+
+            if (digits.length > 0) {
+                inputs[Math.min(digits.length, 5)].focus();
+            }
+        });
+    });
+}
+
+// ============================================================
+//  OTP BUTTONS
+// ============================================================
+function initOTPButtons() {
+    const verifyBtn = document.getElementById('otp-verify-btn');
+    const resendLink = document.getElementById('otp-resend');
+    const errorEl = document.getElementById('otp-error');
+
+    if (verifyBtn) {
+        verifyBtn.addEventListener('click', async () => {
+            const inputs = document.querySelectorAll('.otp-digit');
+            const code = Array.from(inputs).map(i => i.value).join('');
+
+            if (code.length !== 6) {
+                errorEl.textContent = 'Enter the complete 6-digit code!';
+                return;
+            }
+
+            errorEl.textContent = '';
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = 'VERIFYING...';
+
+            try {
+                const res = await fetchWithTimeout(API + '/verify-account', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: currentUsername,
+                        code: code
+                    })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    // Cod corect → afișează verified view
+                    showVerifiedView(currentUsername);
+                    // Auto-login + redirect la main
+                    setTimeout(() => autoLoginAndRedirect(), 2000);
+                } else {
+                    errorEl.textContent = data.error || 'Invalid code!';
+                    verifyBtn.disabled = false;
+                    verifyBtn.textContent = 'VERIFY';
+
+                    // Shake OTP card
+                    const card = document.querySelector('.otp-card');
+                    card.classList.add('shake');
+                    setTimeout(() => card.classList.remove('shake'), 500);
+
+                    // Clear inputs
+                    inputs.forEach(i => { i.value = ''; i.classList.remove('filled'); });
+                    inputs[0].focus();
+                }
+            } catch (err) {
+                console.error(err);
+                errorEl.textContent = 'Server error. Try again.';
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'VERIFY';
+            }
+        });
+    }
+
+    if (resendLink) {
+        resendLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+
+            try {
+                const res = await fetchWithTimeout(API + '/resend-verification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: currentUsername })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    alert('✅ New code sent to your email!');
+                } else {
+                    alert('❌ Error: ' + (data.error || 'Unknown'));
+                }
+            } catch (err) {
+                alert('❌ Server error');
+            }
+        });
+    }
+}
+
+// ============================================================
+//  VERIFIED VIEW
+// ============================================================
+function showVerifiedView(username) {
+    document.getElementById('otp-view').classList.add('hidden');
+    document.getElementById('verified-view').classList.remove('hidden');
+    document.getElementById('verified-username').textContent = username;
+}
+
+// ============================================================
+//  AUTO LOGIN + REDIRECT
+// ============================================================
+async function autoLoginAndRedirect() {
+    try {
+        const res = await fetchWithTimeout(API + '/auto-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: currentUsername,
+                deviceId: currentDeviceId
+            })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            localStorage.setItem('wof_session', JSON.stringify({
+                username: data.username,
+                token: data.token,
+                sessionId: data.sessionId,
+                rank: data.rank,
+                email: data.email,
+                luna: data.luna,
+                lits: data.lits
+            }));
+
+            window.location.href = '../main/main.html';
+        } else {
+            window.location.href = 'login.html';
         }
-    }, 3000);
+    } catch (err) {
+        console.error('Auto-login failed:', err);
+        window.location.href = 'login.html';
+    }
 }
 
 // ============================================================
@@ -370,164 +443,3 @@ function updatePasswordStrength() {
         hint.className = 'form-hint error';
     }
 }
-
-// ============================================================
-//  IMAGE SLIDESHOW
-// ============================================================
-function startImageSlideshow() {
-    fetch('images/images.json')
-        .then(r => r.json())
-        .then(data => {
-            imagesList = data.images || [];
-            if (imagesList.length === 0) return;
-            loadImages();
-            startSlideInterval();
-        })
-        .catch(() => {
-            console.log('No images, using purple background');
-        });
-}
-
-function loadImages() {
-    const container = document.getElementById('signin-image-side');
-    if (!container) return;
-
-    imagesList.forEach((img) => {
-        const div = document.createElement('div');
-        div.className = 'bg-image';
-        div.style.backgroundImage = `url('images/${img}')`;
-        container.insertBefore(div, container.firstChild);
-    });
-    const firstImg = container.querySelector('.bg-image');
-    if (firstImg) firstImg.classList.add('active');
-}
-
-function startSlideInterval() {
-    const container = document.getElementById('signin-image-side');
-    if (!container) return;
-
-    imageInterval = setInterval(() => {
-        const imgs = container.querySelectorAll('.bg-image');
-        if (imgs.length === 0) return;
-
-        imgs[imageIndex].classList.remove('active');
-        imageIndex = (imageIndex + 1) % imgs.length;
-        imgs[imageIndex].classList.add('active');
-    }, 4000);
-}
-
-// ============================================================
-//  LANGUAGE
-// ============================================================
-async function initLanguage() {
-    try {
-        const res = await fetch(`${LANG_PATH}/languages.json`);
-        const data = await res.json();
-        supportedLanguages = data.supported;
-
-        let lang = localStorage.getItem('wof_language');
-        if (!lang) {
-            const browserLang = (navigator.language || 'en').split('-')[0].toLowerCase();
-            const isSupported = supportedLanguages.some(l => l.code === browserLang);
-            lang = isSupported ? browserLang : (data.default || 'en');
-        }
-
-        await setLanguage(lang);
-        populateLanguageDropdown();
-        setupLanguageButton();
-    } catch (err) {
-        console.error('Language init failed:', err);
-    }
-}
-
-async function setLanguage(code) {
-    try {
-        currentLang = code;
-        localStorage.setItem('wof_language', code);
-        const res = await fetch(`${LANG_PATH}/${code}.json`);
-        translations = await res.json();
-        applyTranslations();
-        updateLanguageButton();
-    } catch (err) {
-        console.error('Failed to load language:', err);
-    }
-}
-
-function applyTranslations() {
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.dataset.i18n;
-        const value = getNestedValue(translations, key);
-        if (value) el.textContent = value;
-    });
-
-    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-        const key = el.dataset.i18nPlaceholder;
-        const value = getNestedValue(translations, key);
-        if (value) el.placeholder = value;
-    });
-}
-
-function getNestedValue(obj, path) {
-    return path.split('.').reduce((acc, key) => acc && acc[key], obj);
-}
-
-function populateLanguageDropdown() {
-    const dropdown = document.getElementById('lang-dropdown');
-    if (!dropdown) return;
-    dropdown.innerHTML = '';
-
-    supportedLanguages.forEach(lang => {
-        const option = document.createElement('div');
-        option.className = 'lang-option';
-        if (lang.code === currentLang) option.classList.add('active');
-        option.innerHTML = `
-            <span class="lang-option-flag">${lang.flag}</span>
-            <span class="lang-option-name">${lang.name}</span>
-            <span class="lang-option-code">${lang.code.toUpperCase()}</span>
-        `;
-        option.addEventListener('click', async () => {
-            await setLanguage(lang.code);
-            populateLanguageDropdown();
-            closeLanguageDropdown();
-        });
-        dropdown.appendChild(option);
-    });
-}
-
-function setupLanguageButton() {
-    const btn = document.getElementById('lang-btn');
-    const dropdown = document.getElementById('lang-dropdown');
-    if (!btn || !dropdown) return;
-
-    btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        dropdown.classList.toggle('hidden');
-        btn.classList.toggle('open');
-    });
-
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.language-selector')) closeLanguageDropdown();
-    });
-}
-
-function closeLanguageDropdown() {
-    document.getElementById('lang-dropdown')?.classList.add('hidden');
-    document.getElementById('lang-btn')?.classList.remove('open');
-}
-
-function updateLanguageButton() {
-    const lang = supportedLanguages.find(l => l.code === currentLang);
-    if (!lang) return;
-    const flagEl = document.getElementById('lang-flag');
-    const codeEl = document.getElementById('lang-code');
-    if (flagEl) flagEl.textContent = lang.flag;
-    if (codeEl) codeEl.textContent = lang.code.toUpperCase();
-}
-
-// ============================================================
-//  CLEANUP
-// ============================================================
-window.addEventListener('beforeunload', () => {
-    if (imageInterval) clearInterval(imageInterval);
-    if (verificationCheckInterval) clearInterval(verificationCheckInterval);
-});
