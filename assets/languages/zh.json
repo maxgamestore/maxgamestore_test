@@ -1,1 +1,53 @@
 
+{
+  "login": {
+    "title": "战斗世界",
+    "subtitle": "MAXGAMESTORE 公司",
+    "username": "用户名",
+    "password": "密码",
+    "login_btn": "登录",
+    "no_account": "还没有账号？",
+    "sign_in_btn": "注册",
+    "error_username": "用户名：3-24个字符",
+    "error_password": "密码：至少8个字符",
+    "error_server": "服务器连接错误"
+  },
+  "signin": {
+    "title": "注册",
+    "username": "用户名",
+    "email": "邮箱",
+    "password": "密码",
+    "confirm": "确认密码",
+    "signin_btn": "创建账号",
+    "have_account": "已有账号？",
+    "login_btn": "登录",
+    "error_username": "用户名：3-24个字符",
+    "error_email": "邮箱必填",
+    "error_password": "密码：至少8个字符，1个大写字母，1个数字，1个符号",
+    "error_confirm": "两次密码不一致",
+    "error_server": "服务器连接错误"
+  },
+  "verify": {
+    "title": "验证邮箱",
+    "message": "我们已发送6位数验证码至：",
+    "verify_btn": "验证",
+    "resend": "没有收到验证码？",
+    "resend_btn": "重新发送",
+    "error_code": "请输入完整的6位验证码！"
+  },
+  "main": {
+    "welcome": "欢迎！",
+    "feed_title": "📰 动态",
+    "placeholder": "内容即将推出...",
+    "shop": "商店",
+    "info": "信息",
+    "games": "游戏",
+    "logout": "退出登录"
+  },
+  "ranks": {
+    "owner": "所有者",
+    "admin": "管理员",
+    "developer": "开发者",
+    "user": "用户"
+  }
+}
