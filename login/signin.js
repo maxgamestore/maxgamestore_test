@@ -49,12 +49,12 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
 document.addEventListener('DOMContentLoaded', async () => {
     await initLanguage();
     startImageSlideshow();
-    
+
     // Verifică dacă vine din link de verificare
     const params = new URLSearchParams(window.location.search);
     const verified = params.get('verified');
     const user = params.get('user');
-    
+
     if (verified === 'true' && user) {
         // User a verificat contul — auto-login
         await handleVerifiedArrival(user);
@@ -65,27 +65,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ============================================================
-//  HANDLE VERIFIED ARRIVAL
+//  HANDLE VERIFIED ARRIVAL (auto-login după verificare)
 // ============================================================
 async function handleVerifiedArrival(username) {
     // Ascunde form-ul, arată verified view
     document.getElementById('signup-view').classList.add('hidden');
     document.getElementById('verified-view').classList.remove('hidden');
     document.getElementById('verified-username').textContent = username;
-    
+
     // Așteaptă 2 secunde (pentru efect vizual), apoi auto-login
     setTimeout(async () => {
         try {
-            // Cere token de la server pentru user-ul verificat
             const res = await fetchWithTimeout(API + '/auto-login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: username, deviceId: currentDeviceId })
             });
             const data = await res.json();
-            
+
             if (data.success) {
-                // Salvează sesiunea
                 localStorage.setItem('wof_session', JSON.stringify({
                     username: data.username,
                     token: data.token,
@@ -95,11 +93,9 @@ async function handleVerifiedArrival(username) {
                     luna: data.luna,
                     lits: data.lits
                 }));
-                
-                // Redirect la main
+
                 window.location.href = '../main/main.html';
             } else {
-                // Fallback: redirect la login
                 window.location.href = 'login.html';
             }
         } catch (err) {
@@ -122,19 +118,43 @@ function initSigninForm() {
         passwordInput.addEventListener('input', updatePasswordStrength);
     }
 
+    // Live confirm check
+    const confirmInput = document.getElementById('signin-confirm');
+    if (confirmInput) {
+        confirmInput.addEventListener('input', () => {
+            const hint = document.getElementById('confirm-hint');
+            const password = document.getElementById('signin-password').value;
+            const confirm = confirmInput.value;
+
+            if (!confirm) {
+                hint.textContent = '';
+                hint.className = 'form-hint';
+                return;
+            }
+
+            if (password === confirm) {
+                hint.textContent = '✓ Passwords match';
+                hint.className = 'form-hint success';
+            } else {
+                hint.textContent = "✗ Passwords don't match";
+                hint.className = 'form-hint error';
+            }
+        });
+    }
+
     // Live username check
     const usernameInput = document.getElementById('signin-username');
     if (usernameInput) {
         usernameInput.addEventListener('input', () => {
             const hint = document.getElementById('username-hint');
             const val = usernameInput.value.trim();
-            
+
             if (val.length === 0) {
                 hint.textContent = '';
                 hint.className = 'form-hint';
                 return;
             }
-            
+
             if (val.length < 3) {
                 hint.textContent = 'Too short (min 3)';
                 hint.className = 'form-hint error';
@@ -145,12 +165,36 @@ function initSigninForm() {
                 hint.textContent = 'Only letters, numbers, _';
                 hint.className = 'form-hint error';
             } else {
-                hint.textContent = '✓ Available';
+                hint.textContent = '✓ Valid username';
                 hint.className = 'form-hint success';
             }
         });
     }
 
+    // Live email check
+    const emailInput = document.getElementById('signin-email');
+    if (emailInput) {
+        emailInput.addEventListener('input', () => {
+            const hint = document.getElementById('email-hint');
+            const val = emailInput.value.trim();
+
+            if (!val) {
+                hint.textContent = '';
+                hint.className = 'form-hint';
+                return;
+            }
+
+            if (!val.includes('@') || !val.includes('.')) {
+                hint.textContent = 'Invalid email';
+                hint.className = 'form-hint error';
+            } else {
+                hint.textContent = '✓ Valid email';
+                hint.className = 'form-hint success';
+            }
+        });
+    }
+
+    // Submit
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -199,14 +243,13 @@ function initSigninForm() {
             if (data.success) {
                 // Afișează email-sent view
                 showEmailSentView(email, username);
-                
-                // Pornește verificarea periodică
                 startVerificationCheck(username);
-                
+
             } else {
                 btn.disabled = false;
-                btn.textContent = 'CREATE ACCOUNT';
+                btn.textContent = getNestedValue(translations, 'signin.signin_btn') || 'CREATE ACCOUNT';
                 errorEl.textContent = data.error || 'Registration failed';
+
                 form.classList.add('shake');
                 setTimeout(() => form.classList.remove('shake'), 500);
             }
@@ -216,7 +259,7 @@ function initSigninForm() {
                 ? 'Server not responding'
                 : 'Server connection error';
             btn.disabled = false;
-            btn.textContent = 'CREATE ACCOUNT';
+            btn.textContent = getNestedValue(translations, 'signin.signin_btn') || 'CREATE ACCOUNT';
         }
     });
 }
@@ -228,30 +271,29 @@ function showEmailSentView(email, username) {
     document.getElementById('signup-view').classList.add('hidden');
     document.getElementById('email-sent-view').classList.remove('hidden');
     document.getElementById('sent-email').textContent = email;
-    
-    // Salvează username pentru verificare
+
     sessionStorage.setItem('wof_pending_user', username);
 }
 
 // ============================================================
-//  VERIFICATION CHECK (verifică periodic dacă contul e verificat)
+//  VERIFICATION CHECK
 // ============================================================
 function startVerificationCheck(username) {
     if (verificationCheckInterval) clearInterval(verificationCheckInterval);
-    
+
     verificationCheckInterval = setInterval(async () => {
         try {
             const res = await fetch(API + '/check-verified/' + username);
             const data = await res.json();
-            
+
             if (data.verified) {
                 clearInterval(verificationCheckInterval);
-                
+
                 // Cont verificat! Afișează verified view
                 document.getElementById('email-sent-view').classList.add('hidden');
                 document.getElementById('verified-view').classList.remove('hidden');
                 document.getElementById('verified-username').textContent = username;
-                
+
                 // Auto-login
                 setTimeout(async () => {
                     try {
@@ -261,7 +303,7 @@ function startVerificationCheck(username) {
                             body: JSON.stringify({ username: username, deviceId: currentDeviceId })
                         });
                         const loginData = await loginRes.json();
-                        
+
                         if (loginData.success) {
                             localStorage.setItem('wof_session', JSON.stringify({
                                 username: loginData.username,
@@ -272,7 +314,7 @@ function startVerificationCheck(username) {
                                 luna: loginData.luna,
                                 lits: loginData.lits
                             }));
-                            
+
                             window.location.href = '../main/main.html';
                         } else {
                             window.location.href = 'login.html';
@@ -286,7 +328,7 @@ function startVerificationCheck(username) {
         } catch (err) {
             // Ignoră erorile de rețea
         }
-    }, 3000); // Verifică la fiecare 3 secunde
+    }, 3000);
 }
 
 // ============================================================
@@ -307,7 +349,7 @@ function getPasswordStrength(password) {
     if (/[a-z]/.test(password)) score++;
     if (/[0-9]/.test(password)) score++;
     if (/[!@#$%^&*(),.?":{}|<>_\-+=]/.test(password)) score++;
-    
+
     if (score <= 2) return 'weak';
     if (score <= 4) return 'medium';
     return 'strong';
@@ -317,21 +359,21 @@ function updatePasswordStrength() {
     const password = document.getElementById('signin-password').value;
     const bar = document.getElementById('strength-bar');
     const hint = document.getElementById('password-hint');
-    
+
     if (!bar) return;
-    
+
     bar.className = 'strength-bar';
-    
+
     if (password.length === 0) {
         bar.style.width = '0';
         hint.textContent = '';
         hint.className = 'form-hint';
         return;
     }
-    
+
     const strength = getPasswordStrength(password);
     bar.classList.add(strength);
-    
+
     if (isValidPassword(password)) {
         hint.textContent = '✓ Password is strong';
         hint.className = 'form-hint success';
@@ -349,19 +391,22 @@ function startImageSlideshow() {
         .then(r => r.json())
         .then(data => {
             imagesList = data.images || [];
-            if (imagesList.length === 0) return;
+            if (imagesList.length === 0) {
+                console.log('No images, using purple background');
+                return;
+            }
             loadImages();
             startSlideInterval();
         })
         .catch(() => {
-            console.log('No images, using purple background');
+            console.log('No images.json found - using purple background');
         });
 }
 
 function loadImages() {
     const container = document.getElementById('signin-image-side');
     if (!container) return;
-    
+
     imagesList.forEach((img) => {
         const div = document.createElement('div');
         div.className = 'bg-image';
@@ -387,21 +432,21 @@ function startSlideInterval() {
 }
 
 // ============================================================
-//  LANGUAGE SYSTEM
+//  LANGUAGE
 // ============================================================
 async function initLanguage() {
     try {
         const res = await fetch(`${LANG_PATH}/languages.json`);
         const data = await res.json();
         supportedLanguages = data.supported;
-        
+
         let lang = localStorage.getItem('wof_language');
         if (!lang) {
             const browserLang = (navigator.language || 'en').split('-')[0].toLowerCase();
             const isSupported = supportedLanguages.some(l => l.code === browserLang);
             lang = isSupported ? browserLang : (data.default || 'en');
         }
-        
+
         await setLanguage(lang);
         populateLanguageDropdown();
         setupLanguageButton();
@@ -429,6 +474,12 @@ function applyTranslations() {
         const value = getNestedValue(translations, key);
         if (value) el.textContent = value;
     });
+
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.dataset.i18nPlaceholder;
+        const value = getNestedValue(translations, key);
+        if (value) el.placeholder = value;
+    });
 }
 
 function getNestedValue(obj, path) {
@@ -439,7 +490,7 @@ function populateLanguageDropdown() {
     const dropdown = document.getElementById('lang-dropdown');
     if (!dropdown) return;
     dropdown.innerHTML = '';
-    
+
     supportedLanguages.forEach(lang => {
         const option = document.createElement('div');
         option.className = 'lang-option';
@@ -462,13 +513,13 @@ function setupLanguageButton() {
     const btn = document.getElementById('lang-btn');
     const dropdown = document.getElementById('lang-dropdown');
     if (!btn || !dropdown) return;
-    
+
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
         dropdown.classList.toggle('hidden');
         btn.classList.toggle('open');
     });
-    
+
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.language-selector')) closeLanguageDropdown();
     });
@@ -482,8 +533,10 @@ function closeLanguageDropdown() {
 function updateLanguageButton() {
     const lang = supportedLanguages.find(l => l.code === currentLang);
     if (!lang) return;
-    document.getElementById('lang-flag').textContent = lang.flag;
-    document.getElementById('lang-code').textContent = lang.code.toUpperCase();
+    const flagEl = document.getElementById('lang-flag');
+    const codeEl = document.getElementById('lang-code');
+    if (flagEl) flagEl.textContent = lang.flag;
+    if (codeEl) codeEl.textContent = lang.code.toUpperCase();
 }
 
 // ============================================================
