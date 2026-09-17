@@ -6,6 +6,9 @@
     <title>World Of Fights</title>
     <link rel="icon" href="../assets/favicon.png">
     <link rel="stylesheet" href="main.css">
+    <!-- highlight.js pentru cod -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 </head>
 <body>
 
@@ -29,33 +32,111 @@
                 <a href="#" class="menu-link" data-menu="shop">Shop</a>
                 <a href="#" class="menu-link" data-menu="info">Info</a>
                 <a href="#" class="menu-link" data-menu="games">Games</a>
+                <a href="#" class="menu-link" id="settings-btn">Settings</a>
+                <a href="#" class="menu-link" id="admin-btn" style="display:none;">Admin</a>
                 <a href="#" class="menu-link logout" id="logout-btn">Logout</a>
             </div>
         </div>
 
         <!-- ============================================================
-             CONȚINUT PRINCIPAL
+             FEED (POSTS)
              ============================================================ -->
         <div class="main-content">
-
-            <!-- FEED (POSTS) -->
             <div class="feed-section">
                 <div class="feed-header">
-                    <h2 class="feed-title" data-i18n="main.feed_title">📰 FEED</h2>
-                    <button class="btn-new-post hidden" id="new-post-btn">
-                        ✏️ New Post
-                    </button>
+                    <h2 class="feed-title">FEED</h2>
+                    <button class="btn-new-post hidden" id="new-post-btn">New Post</button>
                 </div>
 
                 <div class="feed-list" id="feed-list">
-                    <!-- Postările se încarcă din JS -->
                     <div class="feed-loading">
                         <div class="spinner"></div>
                         <p>Loading feed...</p>
                     </div>
                 </div>
             </div>
+        </div>
 
+        <!-- ============================================================
+             BOTTOM SECTION (About Us + Global Chat)
+             ============================================================ -->
+        <div class="bottom-section">
+
+            <!-- TABS -->
+            <div class="bottom-tabs">
+                <button class="bottom-tab active" data-tab="about">About Us</button>
+                <div class="tab-divider"></div>
+                <button class="bottom-tab" data-tab="chat">Global Chat</button>
+            </div>
+
+            <!-- SEPARATOR ORIZONTAL -->
+            <div class="tab-separator"></div>
+
+            <!-- CONȚINUT (același spațiu) -->
+            <div class="bottom-content">
+
+                <!-- ABOUT US CONTENT -->
+                <div class="tab-content active" id="tab-about">
+                    <div class="about-section">
+                        <h3>World Of Fights</h3>
+                        <p>Online multiplayer fighting game developed by MaxGameStore Corporation.</p>
+
+                        <h4>Features</h4>
+                        <ul>
+                            <li>Real-time PvP combat</li>
+                            <li>Multiple worlds and maps</li>
+                            <li>Shop and crafting system</li>
+                            <li>Global chat and community</li>
+                            <li>Custom ranks and permissions</li>
+                        </ul>
+
+                        <h4>Team</h4>
+                        <p><strong>Owner:</strong> MaxGameStore</p>
+                        <p><strong>Developer:</strong> MaxGameStore</p>
+                        <p><strong>Version:</strong> Beta 0.0.1</p>
+
+                        <h4>Contact</h4>
+                        <p>Email: maxgamestore5@gmail.com</p>
+
+                        <p class="copyright">© 2026 MaxGameStore Corporation. All rights reserved.</p>
+                    </div>
+                </div>
+
+                <!-- GLOBAL CHAT CONTENT -->
+                <div class="tab-content" id="tab-chat">
+                    <div class="chat-container">
+
+                        <!-- Chat Posts -->
+                        <div class="chat-posts" id="chat-posts">
+                            <div class="chat-loading">
+                                <div class="spinner"></div>
+                                <p>Loading chat...</p>
+                            </div>
+                        </div>
+
+                        <!-- Chat Input (doar dacă poți posta) -->
+                        <div class="chat-input-section hidden" id="chat-input-section">
+                            <div class="chat-input-wrapper">
+                                <textarea id="chat-input" placeholder="Write a message..." maxlength="5000"></textarea>
+                                <div class="chat-input-toolbar">
+                                    <button class="tool-btn" id="tool-image" title="Attach image">Image</button>
+                                    <button class="tool-btn" id="tool-link" title="Add link">Link</button>
+                                    <button class="tool-btn" id="tool-code" title="Add code">Code</button>
+                                    <button class="tool-btn" id="tool-file" title="Attach file">File</button>
+                                    <button class="tool-btn send-btn" id="send-btn" title="Send">Send</button>
+                                </div>
+                            </div>
+                            <div class="chat-attachments" id="chat-attachments"></div>
+                        </div>
+
+                        <!-- Dacă nu poți posta -->
+                        <div class="chat-no-permission hidden" id="chat-no-permission">
+                            <p>You don't have permission to post in the global chat.</p>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- ============================================================
@@ -64,11 +145,10 @@
         <div class="main-footer">
             <p>© 2026 MaxGameStore Corporation. All rights reserved.</p>
         </div>
-
     </div>
 
     <!-- ============================================================
-         MODAL: NEW POST (pentru admin/owner/dev)
+         MODAL: NEW POST
          ============================================================ -->
     <div class="modal hidden" id="new-post-modal">
         <div class="modal-content">
@@ -93,41 +173,186 @@
             <button class="modal-close" data-close="profile-modal">×</button>
             <h2>PROFILE</h2>
             <div class="profile-info">
-                <div class="profile-row">
-                    <span>Username:</span>
-                    <strong id="p-username">-</strong>
-                </div>
-                <div class="profile-row">
-                    <span>Rank:</span>
-                    <strong id="p-rank">-</strong>
-                </div>
-                <div class="profile-row">
-                    <span>Email:</span>
-                    <strong id="p-email">-</strong>
-                </div>
-                <div class="profile-row">
-                    <span>Luna:</span>
-                    <strong id="p-luna">-</strong>
-                </div>
-                <div class="profile-row">
-                    <span>Lits:</span>
-                    <strong id="p-lits">-</strong>
-                </div>
+                <div class="profile-row"><span>Username:</span><strong id="p-username">-</strong></div>
+                <div class="profile-row"><span>Rank:</span><strong id="p-rank">-</strong></div>
+                <div class="profile-row"><span>Email:</span><strong id="p-email">-</strong></div>
+                <div class="profile-row"><span>Luna:</span><strong id="p-luna">-</strong></div>
+                <div class="profile-row"><span>Lits:</span><strong id="p-lits">-</strong></div>
             </div>
         </div>
     </div>
 
     <!-- ============================================================
-         LANGUAGE SELECTOR
+         MODAL: SETTINGS
          ============================================================ -->
-    <div class="language-selector" id="language-selector">
-        <button class="lang-btn" id="lang-btn">
-            <span class="lang-flag" id="lang-flag">🇬🇧</span>
-            <span class="lang-code" id="lang-code">EN</span>
-            <span class="lang-arrow">▼</span>
-        </button>
-        <div class="lang-dropdown hidden" id="lang-dropdown"></div>
+    <div class="modal hidden" id="settings-modal">
+        <div class="modal-content">
+            <button class="modal-close" data-close="settings-modal">×</button>
+            <h2>SETTINGS</h2>
+            <form id="settings-form">
+                <div class="form-group">
+                    <label>Chat Bubble Color</label>
+                    <input type="color" id="setting-bubble-color" value="#16161e">
+                </div>
+                <div class="form-group">
+                    <label>Theme</label>
+                    <select id="setting-theme">
+                        <option value="dark">Dark</option>
+                        <option value="darker">Darker</option>
+                        <option value="light">Light</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Font Size</label>
+                    <select id="setting-font-size">
+                        <option value="small">Small</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="large">Large</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="setting-notifications" checked>
+                        Enable notifications
+                    </label>
+                </div>
+                <button type="submit" class="btn-primary">SAVE</button>
+            </form>
+        </div>
     </div>
+
+    <!-- ============================================================
+         MODAL: ADMIN PANEL
+         ============================================================ -->
+    <div class="modal hidden" id="admin-modal">
+        <div class="modal-content modal-large">
+            <button class="modal-close" data-close="admin-modal">×</button>
+            <h2>ADMIN PANEL</h2>
+
+            <div class="admin-tabs">
+                <button class="admin-tab active" data-admin-tab="global">Global Message</button>
+                <button class="admin-tab" data-admin-tab="gift">Gift</button>
+                <button class="admin-tab" data-admin-tab="rank">Set Rank</button>
+                <button class="admin-tab" data-admin-tab="ban">Ban</button>
+                <button class="admin-tab" data-admin-tab="customranks">Custom Ranks</button>
+            </div>
+
+            <!-- Global Message -->
+            <div class="admin-content active" id="admin-global">
+                <div class="form-group">
+                    <label>Message (appears for 5 seconds)</label>
+                    <input type="text" id="global-message-input" maxlength="200" placeholder="Type message...">
+                </div>
+                <button class="btn-primary" id="send-global-btn">SEND GLOBAL MESSAGE</button>
+            </div>
+
+            <!-- Gift -->
+            <div class="admin-content" id="admin-gift">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="gift-username" placeholder="username">
+                </div>
+                <div class="form-group">
+                    <label>Luna amount</label>
+                    <input type="number" id="gift-luna" min="0" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Lits amount</label>
+                    <input type="number" id="gift-lits" min="0" value="0">
+                </div>
+                <button class="btn-primary" id="send-gift-btn">SEND GIFT</button>
+            </div>
+
+            <!-- Set Rank -->
+            <div class="admin-content" id="admin-rank">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="rank-username" placeholder="username">
+                </div>
+                <div class="form-group">
+                    <label>New Rank</label>
+                    <select id="rank-select">
+                        <option value="user">User</option>
+                        <option value="developer">Developer</option>
+                        <option value="admin">Admin</option>
+                        <option value="owner">Owner</option>
+                    </select>
+                </div>
+                <button class="btn-primary" id="set-rank-btn">SET RANK</button>
+            </div>
+
+            <!-- Ban -->
+            <div class="admin-content" id="admin-ban">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="ban-username" placeholder="username">
+                </div>
+                <div class="form-group">
+                    <label>Reason</label>
+                    <input type="text" id="ban-reason" placeholder="reason">
+                </div>
+                <div class="form-group">
+                    <label>Duration (ms, optional)</label>
+                    <input type="number" id="ban-duration" placeholder="permanent if empty">
+                </div>
+                <button class="btn-primary" id="ban-user-btn">BAN USER</button>
+            </div>
+
+            <!-- Custom Ranks -->
+            <div class="admin-content" id="admin-customranks">
+                <div class="form-group">
+                    <label>Rank ID (lowercase)</label>
+                    <input type="text" id="custom-rank-id" placeholder="tester">
+                </div>
+                <div class="form-group">
+                    <label>Display Name</label>
+                    <input type="text" id="custom-rank-name" placeholder="Tester">
+                </div>
+                <div class="form-group">
+                    <label>Color</label>
+                    <input type="color" id="custom-rank-color" value="#00ff88">
+                </div>
+                <div class="form-group">
+                    <label>Icon</label>
+                    <input type="text" id="custom-rank-icon" placeholder="🧪" maxlength="2">
+                </div>
+                <div class="form-group">
+                    <label>Permissions</label>
+                    <div class="permissions-list">
+                        <label><input type="checkbox" data-perm="canPost"> canPost</label>
+                        <label><input type="checkbox" data-perm="canPostImages"> canPostImages</label>
+                        <label><input type="checkbox" data-perm="canPostLinks"> canPostLinks</label>
+                        <label><input type="checkbox" data-perm="canPostCode"> canPostCode</label>
+                        <label><input type="checkbox" data-perm="canPostFiles"> canPostFiles</label>
+                        <label><input type="checkbox" data-perm="canModerateChat"> canModerateChat</label>
+                        <label><input type="checkbox" data-perm="canDeletePosts"> canDeletePosts</label>
+                        <label><input type="checkbox" data-perm="canGift"> canGift</label>
+                        <label><input type="checkbox" data-perm="canBanUsers"> canBanUsers</label>
+                        <label><input type="checkbox" data-perm="canSendGlobalMessage"> canSendGlobalMessage</label>
+                    </div>
+                </div>
+                <button class="btn-primary" id="create-rank-btn">CREATE CUSTOM RANK</button>
+
+                <h4>Existing Custom Ranks</h4>
+                <div class="custom-ranks-list" id="custom-ranks-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         GLOBAL MESSAGE OVERLAY
+         ============================================================ -->
+    <div class="global-message-overlay hidden" id="global-message-overlay">
+        <div class="global-message-content">
+            <span class="global-message-from" id="global-message-from">Admin</span>
+            <span class="global-message-text" id="global-message-text">Message</span>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         NOTIFICATION TOAST
+         ============================================================ -->
+    <div class="toast-container" id="toast-container"></div>
 
     <script src="main.js"></script>
 </body>
