@@ -1,9 +1,16 @@
 // ============================================================
+//  WORLD OF FIGHTS - MAIN
+//  MaxGameStore Corporation © 2026
+//  FULL VERSION
+// ============================================================
+
+// ============================================================
 //  CONFIG
 // ============================================================
 const SERVER_URL = "https://trimmer-chrome-landfall.ngrok-free.dev";
 const API = SERVER_URL + "/api";
 const WS_URL = "wss://trimmer-chrome-landfall.ngrok-free.dev";
+const GAME_VERSION = "Beta 0.0.3";
 
 // ============================================================
 //  STATE
@@ -192,7 +199,25 @@ async function loadChat() {
             token: currentUser?.token || ''
         });
         const res = await fetch(API + '/chat/posts?' + params);
-        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error('Server returned ' + res.status);
+        }
+
+        const text = await res.text();
+
+        if (!text || text.trim() === '') {
+            throw new Error('Empty response from server');
+        }
+
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error('Server returned HTML instead of JSON. Server is missing endpoint /api/chat/posts');
+            chatPosts.innerHTML = '<div class="chat-empty"><p>Server endpoint missing. Check server.</p></div>';
+            return;
+        }
 
         if (data.error) {
             chatPosts.innerHTML = `<div class="chat-empty"><p>${data.error}</p></div>`;
@@ -221,7 +246,7 @@ async function loadChat() {
         }
 
     } catch (err) {
-        console.error('Load chat error:', err);
+        console.error('Load chat error:', err.message || err);
         chatPosts.innerHTML = '<div class="chat-empty"><p>Failed to load chat.</p></div>';
     }
 }
@@ -242,7 +267,6 @@ function createChatPost(post) {
     const bubbleColor = currentSettings.bubbleColor || '#16161e';
     const borderColor = rankInfo.color || '#ffd700';
 
-    // Header
     const header = document.createElement('div');
     header.className = 'chat-post-header';
     header.innerHTML = `
@@ -253,13 +277,11 @@ function createChatPost(post) {
     `;
     wrapper.appendChild(header);
 
-    // Bubble
     const bubble = document.createElement('div');
     bubble.className = 'chat-post-bubble';
     bubble.style.background = bubbleColor;
     bubble.style.borderColor = borderColor;
 
-    // Text
     if (post.content && (post.type === 'text' || !post.type)) {
         const textEl = document.createElement('div');
         textEl.className = 'chat-post-text';
@@ -267,7 +289,6 @@ function createChatPost(post) {
         bubble.appendChild(textEl);
     }
 
-    // Code
     if (post.code) {
         const codeWrapper = document.createElement('div');
         codeWrapper.className = 'chat-post-code-wrapper';
@@ -292,7 +313,6 @@ function createChatPost(post) {
         }, 50);
     }
 
-    // Image
     if (post.image) {
         const img = document.createElement('img');
         img.className = 'chat-post-image';
@@ -303,7 +323,6 @@ function createChatPost(post) {
         bubble.appendChild(img);
     }
 
-    // Link
     if (post.link) {
         const link = document.createElement('a');
         link.className = 'chat-post-link';
@@ -314,7 +333,6 @@ function createChatPost(post) {
         bubble.appendChild(link);
     }
 
-    // File
     if (post.file) {
         const fileLink = document.createElement('a');
         fileLink.className = 'chat-post-file';
@@ -327,7 +345,6 @@ function createChatPost(post) {
 
     wrapper.appendChild(bubble);
 
-    // Actions
     const actions = document.createElement('div');
     actions.className = 'chat-post-actions';
 
@@ -358,7 +375,7 @@ function createChatPost(post) {
 }
 
 // ============================================================
-//  CHAT - SEND
+//  CHAT INPUT
 // ============================================================
 function initChatInput() {
     const sendBtn = document.getElementById('send-btn');
@@ -588,7 +605,8 @@ function initWebSocket() {
         ws = new WebSocket(WS_URL);
 
         ws.onopen = () => {
-            const authMsg = `AUTH:${currentUser.token}:${currentUser.username}:${currentUser.sessionId}:Beta 0.0.1`;
+            const authMsg = `AUTH:${currentUser.token}:${currentUser.username}:${currentUser.sessionId}:${GAME_VERSION}`;
+            console.log('🔌 WS auth with version:', GAME_VERSION);
             ws.send(authMsg);
         };
 
@@ -899,7 +917,6 @@ function initAdminPanel() {
         renderCustomRanksList();
     });
 
-    // Tabs
     document.querySelectorAll('.admin-tab').forEach(tab => {
         tab.addEventListener('click', () => {
             const target = tab.dataset.adminTab;
@@ -910,7 +927,6 @@ function initAdminPanel() {
         });
     });
 
-    // Global message
     document.getElementById('send-global-btn').addEventListener('click', async () => {
         const message = document.getElementById('global-message-input').value.trim();
         if (!message) return;
@@ -938,7 +954,6 @@ function initAdminPanel() {
         }
     });
 
-    // Gift
     document.getElementById('send-gift-btn').addEventListener('click', async () => {
         const targetUser = document.getElementById('gift-username').value.trim();
         const lunaAmount = parseInt(document.getElementById('gift-luna').value) || 0;
@@ -971,7 +986,6 @@ function initAdminPanel() {
         } catch (err) {}
     });
 
-    // Set rank
     document.getElementById('set-rank-btn').addEventListener('click', async () => {
         const targetUser = document.getElementById('rank-username').value.trim();
         const newRank = document.getElementById('rank-select').value;
@@ -1000,7 +1014,6 @@ function initAdminPanel() {
         } catch (err) {}
     });
 
-    // Ban
     document.getElementById('ban-user-btn').addEventListener('click', async () => {
         const targetUser = document.getElementById('ban-username').value.trim();
         const reason = document.getElementById('ban-reason').value.trim();
@@ -1033,7 +1046,6 @@ function initAdminPanel() {
         } catch (err) {}
     });
 
-    // Create custom rank
     document.getElementById('create-rank-btn').addEventListener('click', async () => {
         const rankId = document.getElementById('custom-rank-id').value.trim();
         const name = document.getElementById('custom-rank-name').value.trim();
