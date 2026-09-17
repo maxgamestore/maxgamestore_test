@@ -6,15 +6,11 @@
     <title>World Of Fights</title>
     <link rel="icon" href="../assets/favicon.png">
     <link rel="stylesheet" href="main.css">
-    <!-- highlight.js pentru cod -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 </head>
 <body>
 
-    <!-- ============================================================
-         MAIN CONTAINER
-         ============================================================ -->
     <div class="main-container">
 
         <!-- ============================================================
@@ -39,30 +35,11 @@
         </div>
 
         <!-- ============================================================
-             FEED (POSTS)
-             ============================================================ -->
-        <div class="main-content">
-            <div class="feed-section">
-                <div class="feed-header">
-                    <h2 class="feed-title">FEED</h2>
-                    <button class="btn-new-post hidden" id="new-post-btn">New Post</button>
-                </div>
-
-                <div class="feed-list" id="feed-list">
-                    <div class="feed-loading">
-                        <div class="spinner"></div>
-                        <p>Loading feed...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ============================================================
-             BOTTOM SECTION (About Us + Global Chat)
+             BOTTOM SECTION (About Us + Global Chat) — OCUPĂ TOT SPAȚIUL
              ============================================================ -->
         <div class="bottom-section">
 
-            <!-- TABS -->
+            <!-- TABS (butoane text) -->
             <div class="bottom-tabs">
                 <button class="bottom-tab active" data-tab="about">About Us</button>
                 <div class="tab-divider"></div>
@@ -75,7 +52,7 @@
             <!-- CONȚINUT (același spațiu) -->
             <div class="bottom-content">
 
-                <!-- ABOUT US CONTENT -->
+                <!-- ABOUT US -->
                 <div class="tab-content active" id="tab-about">
                     <div class="about-section">
                         <h3>World Of Fights</h3>
@@ -102,7 +79,7 @@
                     </div>
                 </div>
 
-                <!-- GLOBAL CHAT CONTENT -->
+                <!-- GLOBAL CHAT -->
                 <div class="tab-content" id="tab-chat">
                     <div class="chat-container">
 
@@ -114,7 +91,7 @@
                             </div>
                         </div>
 
-                        <!-- Chat Input (doar dacă poți posta) -->
+                        <!-- Chat Input -->
                         <div class="chat-input-section hidden" id="chat-input-section">
                             <div class="chat-input-wrapper">
                                 <textarea id="chat-input" placeholder="Write a message..." maxlength="5000"></textarea>
@@ -129,7 +106,7 @@
                             <div class="chat-attachments" id="chat-attachments"></div>
                         </div>
 
-                        <!-- Dacă nu poți posta -->
+                        <!-- No permission -->
                         <div class="chat-no-permission hidden" id="chat-no-permission">
                             <p>You don't have permission to post in the global chat.</p>
                         </div>
@@ -139,29 +116,9 @@
             </div>
         </div>
 
-        <!-- ============================================================
-             FOOTER
-             ============================================================ -->
+        <!-- FOOTER -->
         <div class="main-footer">
             <p>© 2026 MaxGameStore Corporation. All rights reserved.</p>
-        </div>
-    </div>
-
-    <!-- ============================================================
-         MODAL: NEW POST
-         ============================================================ -->
-    <div class="modal hidden" id="new-post-modal">
-        <div class="modal-content">
-            <button class="modal-close" data-close="new-post-modal">×</button>
-            <h2>CREATE POST</h2>
-            <form id="new-post-form">
-                <div class="form-group">
-                    <label>Message</label>
-                    <textarea id="post-message" required maxlength="500" placeholder="Write something..."></textarea>
-                    <div class="char-count"><span id="post-char-count">0</span>/500</div>
-                </div>
-                <button type="submit" class="btn-primary">POST</button>
-            </form>
         </div>
     </div>
 
@@ -211,10 +168,7 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="setting-notifications" checked>
-                        Enable notifications
-                    </label>
+                    <label><input type="checkbox" id="setting-notifications" checked> Enable notifications</label>
                 </div>
                 <button type="submit" class="btn-primary">SAVE</button>
             </form>
