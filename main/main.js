@@ -15,7 +15,6 @@ let customRanks = [];
 let ws = null;
 let lunaInterval = null;
 let pendingAttachments = [];
-let activeTab = 'about';
 let globalMsgTimeout = null;
 
 // ============================================================
@@ -23,12 +22,11 @@ let globalMsgTimeout = null;
 // ============================================================
 document.addEventListener('DOMContentLoaded', async () => {
     await checkSession();
-    await loadFeed();
     await loadChat();
     await loadUserSettings();
     await loadChatPermissions();
     await loadCustomRanks();
-    
+
     initMenuLinks();
     initLogout();
     initProfile();
@@ -36,9 +34,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     initAdminPanel();
     initBottomTabs();
     initChatInput();
-    initNewPost();
     initWebSocket();
-    
+
     startLunaRefresh();
 });
 
@@ -126,9 +123,6 @@ function updateUI() {
     }
 
     const rank = (currentUser.rank || 'user').toLowerCase();
-    if (rank === 'admin' || rank === 'owner' || rank === 'developer') {
-        document.getElementById('new-post-btn').classList.remove('hidden');
-    }
     if (rank === 'admin' || rank === 'owner') {
         document.getElementById('admin-btn').style.display = '';
     }
@@ -186,58 +180,6 @@ function startLunaRefresh() {
 }
 
 // ============================================================
-//  FEED
-// ============================================================
-async function loadFeed() {
-    const feedList = document.getElementById('feed-list');
-    if (!feedList) return;
-
-    try {
-        const res = await fetch(API + '/posts');
-        const data = await res.json();
-        feedList.innerHTML = '';
-
-        if (!data.posts || data.posts.length === 0) {
-            feedList.innerHTML = '<div class="feed-empty"><p>No posts yet. Check back later!</p></div>';
-            return;
-        }
-
-        data.posts.forEach(post => {
-            feedList.appendChild(createPostCard(post));
-        });
-    } catch (err) {
-        feedList.innerHTML = '<div class="feed-empty"><p>Failed to load feed.</p></div>';
-    }
-}
-
-function createPostCard(post) {
-    const card = document.createElement('div');
-    card.className = 'post-card';
-
-    const rank = (post.rank || 'user').toLowerCase();
-    const avatar = getAvatar(rank);
-    const timeAgo = getTimeAgo(post.timestamp);
-
-    card.innerHTML = `
-        <div class="post-header">
-            <div class="post-author">
-                <span class="post-avatar">${avatar}</span>
-                <span class="post-username">${escapeHtml(post.username)}</span>
-                <span class="post-rank-badge ${rank}">${rank.toUpperCase()}</span>
-            </div>
-            <span class="post-time">${timeAgo}</span>
-        </div>
-        <div class="post-message">${escapeHtml(post.message)}</div>
-        <div class="post-footer">
-            <span class="post-action">❤️ ${post.likes || 0}</span>
-            <span class="post-action">💬 ${post.comments || 0}</span>
-            <span class="post-action">🔄 Share</span>
-        </div>
-    `;
-    return card;
-}
-
-// ============================================================
 //  CHAT
 // ============================================================
 async function loadChat() {
@@ -258,17 +200,18 @@ async function loadChat() {
         }
 
         chatPosts.innerHTML = '';
+
         if (!data.posts || data.posts.length === 0) {
-            chatPosts.innerHTML = '<div class="chat-empty"><p>No messages yet.</p></div>';
+            chatPosts.innerHTML = '<div class="chat-empty"><p>No messages yet. Be the first!</p></div>';
         } else {
             data.posts.forEach(post => {
                 chatPosts.appendChild(createChatPost(post));
             });
         }
 
-        // Arată/ascunde input
         const inputSection = document.getElementById('chat-input-section');
         const noPerm = document.getElementById('chat-no-permission');
+
         if (data.canPost) {
             inputSection.classList.remove('hidden');
             noPerm.classList.add('hidden');
@@ -276,11 +219,16 @@ async function loadChat() {
             inputSection.classList.add('hidden');
             noPerm.classList.remove('hidden');
         }
+
     } catch (err) {
+        console.error('Load chat error:', err);
         chatPosts.innerHTML = '<div class="chat-empty"><p>Failed to load chat.</p></div>';
     }
 }
 
+// ============================================================
+//  CREATE CHAT POST
+// ============================================================
 function createChatPost(post) {
     const wrapper = document.createElement('div');
     wrapper.className = 'chat-post';
@@ -291,8 +239,7 @@ function createChatPost(post) {
     const rankInfo = getRankInfo(rank);
     const timeAgo = getTimeAgo(post.timestamp);
 
-    // Bubble color
-    const bubbleColor = currentSettings.bubbleColor || rankInfo.color || '#16161e';
+    const bubbleColor = currentSettings.bubbleColor || '#16161e';
     const borderColor = rankInfo.color || '#ffd700';
 
     // Header
@@ -313,7 +260,7 @@ function createChatPost(post) {
     bubble.style.borderColor = borderColor;
 
     // Text
-    if (post.content && post.type === 'text') {
+    if (post.content && (post.type === 'text' || !post.type)) {
         const textEl = document.createElement('div');
         textEl.className = 'chat-post-text';
         textEl.textContent = post.content;
@@ -326,19 +273,21 @@ function createChatPost(post) {
         codeWrapper.className = 'chat-post-code-wrapper';
         codeWrapper.innerHTML = `
             <div class="chat-post-code-header">
-                <span>${post.codeLanguage || 'code'}</span>
+                <span>${escapeHtml(post.codeLanguage || 'code')}</span>
                 <button class="chat-post-code-copy">Copy</button>
             </div>
             <pre class="chat-post-code"><code class="language-${post.codeLanguage || 'plaintext'}">${escapeHtml(post.code)}</code></pre>
         `;
         bubble.appendChild(codeWrapper);
-        // Highlight
+
         setTimeout(() => {
             const codeEl = codeWrapper.querySelector('code');
-            if (window.hljs) hljs.highlightElement(codeEl);
+            if (window.hljs && codeEl) {
+                try { hljs.highlightElement(codeEl); } catch (e) {}
+            }
             codeWrapper.querySelector('.chat-post-code-copy').addEventListener('click', () => {
                 navigator.clipboard.writeText(post.code);
-                showToast('Copied to clipboard', 'success');
+                showToast('Code copied!', 'success');
             });
         }, 50);
     }
@@ -349,6 +298,7 @@ function createChatPost(post) {
         img.className = 'chat-post-image';
         img.src = post.image;
         img.alt = 'image';
+        img.loading = 'lazy';
         img.addEventListener('click', () => window.open(post.image, '_blank'));
         bubble.appendChild(img);
     }
@@ -359,6 +309,7 @@ function createChatPost(post) {
         link.className = 'chat-post-link';
         link.href = post.link;
         link.target = '_blank';
+        link.rel = 'noopener';
         link.textContent = post.link;
         bubble.appendChild(link);
     }
@@ -369,6 +320,7 @@ function createChatPost(post) {
         fileLink.className = 'chat-post-file';
         fileLink.href = post.file.url || post.file;
         fileLink.target = '_blank';
+        fileLink.rel = 'noopener';
         fileLink.innerHTML = `<span class="chat-post-file-icon">FILE</span><span class="chat-post-file-name">${escapeHtml(post.file.name || 'file')}</span>`;
         bubble.appendChild(fileLink);
     }
@@ -379,24 +331,26 @@ function createChatPost(post) {
     const actions = document.createElement('div');
     actions.className = 'chat-post-actions';
 
-    const likeCount = (post.likes || []).length;
-    const liked = (post.likes || []).includes(currentUser.username);
+    const likes = post.likes || [];
+    const liked = currentUser && likes.includes(currentUser.username);
 
     const likeBtn = document.createElement('span');
     likeBtn.className = 'chat-post-action' + (liked ? ' liked' : '');
-    likeBtn.innerHTML = `❤️ ${likeCount}`;
+    likeBtn.innerHTML = `❤️ ${likes.length}`;
     likeBtn.addEventListener('click', () => likeChatPost(post.id));
     actions.appendChild(likeBtn);
 
-    // Delete (autor sau staff)
-    const canDelete = post.username === currentUser.username ||
-        ['owner', 'admin', 'developer'].includes(currentUser.rank);
-    if (canDelete) {
-        const delBtn = document.createElement('span');
-        delBtn.className = 'chat-post-action delete';
-        delBtn.innerHTML = '🗑️ Delete';
-        delBtn.addEventListener('click', () => deleteChatPost(post.id));
-        actions.appendChild(delBtn);
+    if (currentUser) {
+        const isAuthor = post.username === currentUser.username;
+        const isStaff = ['owner', 'admin', 'developer'].includes((currentUser.rank || '').toLowerCase());
+
+        if (isAuthor || isStaff) {
+            const delBtn = document.createElement('span');
+            delBtn.className = 'chat-post-action delete';
+            delBtn.innerHTML = '🗑️ Delete';
+            delBtn.addEventListener('click', () => deleteChatPost(post.id));
+            actions.appendChild(delBtn);
+        }
     }
 
     wrapper.appendChild(actions);
@@ -415,6 +369,7 @@ function initChatInput() {
     const toolFile = document.getElementById('tool-file');
 
     if (sendBtn) sendBtn.addEventListener('click', sendChatMessage);
+
     if (input) {
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -434,13 +389,20 @@ function pickFile(type) {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = type === 'image' ? 'image/*' : '*/*';
+
     input.addEventListener('change', async () => {
         const file = input.files[0];
         if (!file) return;
 
+        if (file.size > 100 * 1024 * 1024) {
+            showToast('File too large! Max 100MB', 'error');
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = async () => {
             const base64 = reader.result.split(',')[1];
+
             try {
                 const res = await fetch(API + '/chat/upload', {
                     method: 'POST',
@@ -454,6 +416,7 @@ function pickFile(type) {
                     })
                 });
                 const data = await res.json();
+
                 if (data.success) {
                     pendingAttachments.push({
                         type: data.type,
@@ -461,6 +424,7 @@ function pickFile(type) {
                         name: data.fileName
                     });
                     renderAttachments();
+                    showToast('File uploaded!', 'success');
                 } else {
                     showToast(data.error || 'Upload failed', 'error');
                 }
@@ -474,7 +438,7 @@ function pickFile(type) {
 }
 
 function addLink() {
-    const link = prompt('Enter URL:');
+    const link = prompt('Enter URL (https://...):');
     if (link && link.startsWith('http')) {
         pendingAttachments.push({ type: 'link', url: link });
         renderAttachments();
@@ -494,19 +458,24 @@ function renderAttachments() {
     const container = document.getElementById('chat-attachments');
     if (!container) return;
     container.innerHTML = '';
+
     pendingAttachments.forEach((att, i) => {
         const el = document.createElement('div');
         el.className = 'attachment-preview';
+
         let label = '';
         if (att.type === 'image') label = 'Image: ' + (att.name || 'image');
         else if (att.type === 'file') label = 'File: ' + (att.name || 'file');
         else if (att.type === 'link') label = 'Link: ' + att.url;
         else if (att.type === 'code') label = 'Code: ' + att.language;
+
         el.innerHTML = `<span>${escapeHtml(label)}</span><span class="remove-attachment">×</span>`;
+
         el.querySelector('.remove-attachment').addEventListener('click', () => {
             pendingAttachments.splice(i, 1);
             renderAttachments();
         });
+
         container.appendChild(el);
     });
 }
@@ -524,7 +493,6 @@ async function sendChatMessage() {
         content: text || ''
     };
 
-    // Adaugă atașamentele
     pendingAttachments.forEach(att => {
         if (att.type === 'image') {
             payload.image = att.url;
@@ -554,7 +522,6 @@ async function sendChatMessage() {
             input.value = '';
             pendingAttachments = [];
             renderAttachments();
-            // Postarea va veni prin WebSocket
         } else {
             showToast(data.error || 'Failed to send', 'error');
         }
@@ -564,6 +531,7 @@ async function sendChatMessage() {
 }
 
 async function likeChatPost(postId) {
+    if (!currentUser) return;
     try {
         await fetch(API + '/chat/like/' + postId, {
             method: 'POST',
@@ -600,7 +568,6 @@ function initBottomTabs() {
     document.querySelectorAll('.bottom-tab').forEach(tab => {
         tab.addEventListener('click', () => {
             const target = tab.dataset.tab;
-            activeTab = target;
 
             document.querySelectorAll('.bottom-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -628,7 +595,6 @@ function initWebSocket() {
         ws.onmessage = (event) => {
             const msg = event.data;
 
-            // CHAT_POST (JSON)
             try {
                 const data = JSON.parse(msg);
                 if (data.type === 'CHAT_POST') {
@@ -642,13 +608,16 @@ function initWebSocket() {
                 } else if (data.type === 'CHAT_PERMISSIONS_UPDATE') {
                     chatPermissions = data.permissions;
                     loadChat();
+                } else if (data.type === 'CHAT_CLEAR') {
+                    document.getElementById('chat-posts').innerHTML = '<div class="chat-empty"><p>Chat cleared.</p></div>';
                 }
             } catch (e) {}
 
-            // String events
             if (msg.startsWith('AUTH_SUCCESS')) {
-                console.log('WS authenticated');
+                console.log('✅ WS authenticated');
                 ws.send('REGISTER_NAME:' + currentUser.username);
+            } else if (msg.startsWith('AUTH_FAILED')) {
+                console.error('❌ WS auth failed:', msg);
             } else if (msg.startsWith('LUNA_UPDATE:')) {
                 const luna = parseInt(msg.substring(12));
                 document.getElementById('main-luna').textContent = luna;
@@ -661,7 +630,7 @@ function initWebSocket() {
                 localStorage.setItem('wof_session', JSON.stringify(currentUser));
             } else if (msg.startsWith('GIFT_RECEIVED:')) {
                 const parts = msg.substring(14).split(':');
-                showToast(`Received gift: ${parts[0]} Luna, ${parts[1]} Lits from ${parts[2]}`, 'success');
+                showToast(`Gift: ${parts[0]} Luna, ${parts[1]} Lits from ${parts[2]}`, 'success');
                 loadLuna();
                 loadLits();
             } else if (msg.startsWith('RANK_UPDATE:')) {
@@ -683,6 +652,7 @@ function initWebSocket() {
         };
 
         ws.onerror = (err) => console.error('WS error:', err);
+
     } catch (err) {
         console.error('WS init failed:', err);
     }
@@ -691,10 +661,12 @@ function initWebSocket() {
 function addChatPostRealtime(post) {
     const chatPosts = document.getElementById('chat-posts');
     if (!chatPosts) return;
-    // Elimină "empty" dacă există
+
     const empty = chatPosts.querySelector('.chat-empty');
     if (empty) empty.remove();
-    chatPosts.insertBefore(createChatPost(post), chatPosts.firstChild);
+
+    const postEl = createChatPost(post);
+    chatPosts.insertBefore(postEl, chatPosts.firstChild);
 }
 
 function removeChatPostRealtime(postId) {
@@ -726,6 +698,7 @@ function showGlobalMessage(from, message) {
     overlay.classList.remove('hidden', 'fade-out');
 
     if (globalMsgTimeout) clearTimeout(globalMsgTimeout);
+
     globalMsgTimeout = setTimeout(() => {
         overlay.classList.add('fade-out');
         setTimeout(() => overlay.classList.add('hidden'), 500);
@@ -763,6 +736,7 @@ async function loadCustomRanks() {
         const res = await fetch(API + '/ranks/custom');
         const data = await res.json();
         customRanks = data.ranks || [];
+        updateRankSelect();
     } catch (err) {}
 }
 
@@ -783,9 +757,12 @@ function getRankInfo(rankId) {
         developer: { name: 'DEVELOPER', color: '#33aaff', icon: '💻' },
         user: { name: 'USER', color: '#b0b0b8', icon: '👤' }
     };
+
     if (defaults[rankId]) return defaults[rankId];
+
     const custom = customRanks.find(r => r.rankId === rankId);
     if (custom) return { name: custom.name, color: custom.color, icon: custom.icon };
+
     return { name: rankId.toUpperCase(), color: '#b0b0b8', icon: '👤' };
 }
 
@@ -793,13 +770,10 @@ function getRankInfo(rankId) {
 //  MENU / LOGOUT / PROFILE
 // ============================================================
 function initMenuLinks() {
-    document.querySelectorAll('.menu-link').forEach(link => {
+    document.querySelectorAll('.menu-link[data-menu]').forEach(link => {
         link.addEventListener('click', (e) => {
-            const menu = link.dataset.menu;
-            if (menu) {
-                e.preventDefault();
-                showToast(menu.toUpperCase() + ' coming soon', 'info');
-            }
+            e.preventDefault();
+            showToast(link.dataset.menu.toUpperCase() + ' coming soon', 'info');
         });
     });
 
@@ -848,6 +822,7 @@ function initProfile() {
 }
 
 function openProfile() {
+    if (!currentUser) return;
     document.getElementById('p-username').textContent = currentUser.username || '-';
     document.getElementById('p-rank').textContent = (currentUser.rank || 'user').toUpperCase();
     document.getElementById('p-email').textContent = currentUser.email || '-';
@@ -868,12 +843,10 @@ function initSettings() {
 
     btn.addEventListener('click', (e) => {
         e.preventDefault();
-        // Populate
         document.getElementById('setting-bubble-color').value = currentSettings.bubbleColor || '#16161e';
         document.getElementById('setting-theme').value = currentSettings.theme || 'dark';
         document.getElementById('setting-font-size').value = currentSettings.fontSize || 'medium';
         document.getElementById('setting-notifications').checked = currentSettings.notifications !== false;
-
         modal.classList.remove('hidden');
     });
 
@@ -898,10 +871,11 @@ function initSettings() {
                 })
             });
             const data = await res.json();
+
             if (data.success) {
                 currentSettings = data.settings;
                 modal.classList.add('hidden');
-                showToast('Settings saved', 'success');
+                showToast('Settings saved!', 'success');
                 loadChat();
             }
         } catch (err) {
@@ -952,9 +926,10 @@ function initAdminPanel() {
                 })
             });
             const data = await res.json();
+
             if (data.success) {
                 document.getElementById('global-message-input').value = '';
-                showToast('Global message sent', 'success');
+                showToast('Global message sent!', 'success');
             } else {
                 showToast(data.error || 'Failed', 'error');
             }
@@ -984,8 +959,12 @@ function initAdminPanel() {
                 })
             });
             const data = await res.json();
+
             if (data.success) {
-                showToast('Gift sent', 'success');
+                showToast('Gift sent!', 'success');
+                document.getElementById('gift-username').value = '';
+                document.getElementById('gift-luna').value = 0;
+                document.getElementById('gift-lits').value = 0;
             } else {
                 showToast(data.error || 'Failed', 'error');
             }
@@ -996,6 +975,7 @@ function initAdminPanel() {
     document.getElementById('set-rank-btn').addEventListener('click', async () => {
         const targetUser = document.getElementById('rank-username').value.trim();
         const newRank = document.getElementById('rank-select').value;
+
         if (!targetUser) return showToast('Enter username', 'error');
 
         try {
@@ -1010,8 +990,13 @@ function initAdminPanel() {
                 })
             });
             const data = await res.json();
-            if (data.success) showToast('Rank updated', 'success');
-            else showToast(data.error || 'Failed', 'error');
+
+            if (data.success) {
+                showToast('Rank updated!', 'success');
+                document.getElementById('rank-username').value = '';
+            } else {
+                showToast(data.error || 'Failed', 'error');
+            }
         } catch (err) {}
     });
 
@@ -1020,6 +1005,7 @@ function initAdminPanel() {
         const targetUser = document.getElementById('ban-username').value.trim();
         const reason = document.getElementById('ban-reason').value.trim();
         const duration = parseInt(document.getElementById('ban-duration').value) || null;
+
         if (!targetUser) return showToast('Enter username', 'error');
 
         try {
@@ -1035,8 +1021,15 @@ function initAdminPanel() {
                 })
             });
             const data = await res.json();
-            if (data.success) showToast('User banned', 'success');
-            else showToast(data.error || 'Failed', 'error');
+
+            if (data.success) {
+                showToast('User banned!', 'success');
+                document.getElementById('ban-username').value = '';
+                document.getElementById('ban-reason').value = '';
+                document.getElementById('ban-duration').value = '';
+            } else {
+                showToast(data.error || 'Failed', 'error');
+            }
         } catch (err) {}
     });
 
@@ -1069,12 +1062,17 @@ function initAdminPanel() {
                 })
             });
             const data = await res.json();
+
             if (data.success) {
-                showToast('Custom rank created', 'success');
+                showToast('Custom rank created!', 'success');
                 await loadCustomRanks();
                 renderCustomRanksList();
-                // Update rank select
                 updateRankSelect();
+
+                document.getElementById('custom-rank-id').value = '';
+                document.getElementById('custom-rank-name').value = '';
+                document.getElementById('custom-rank-icon').value = '';
+                document.querySelectorAll('.permissions-list input[type="checkbox"]').forEach(cb => cb.checked = false);
             } else {
                 showToast(data.error || 'Failed', 'error');
             }
@@ -1101,6 +1099,7 @@ function renderCustomRanksList() {
             <span class="custom-rank-id">${rank.rankId}</span>
             <button class="custom-rank-delete" data-id="${rank.rankId}">DELETE</button>
         `;
+
         el.querySelector('.custom-rank-delete').addEventListener('click', () => deleteCustomRank(rank.rankId));
         list.appendChild(el);
     });
@@ -1108,6 +1107,7 @@ function renderCustomRanksList() {
 
 async function deleteCustomRank(rankId) {
     if (!confirm('Delete rank ' + rankId + '?')) return;
+
     try {
         const params = new URLSearchParams({
             username: currentUser.username,
@@ -1117,8 +1117,9 @@ async function deleteCustomRank(rankId) {
             method: 'DELETE'
         });
         const data = await res.json();
+
         if (data.success) {
-            showToast('Rank deleted', 'success');
+            showToast('Rank deleted!', 'success');
             await loadCustomRanks();
             renderCustomRanksList();
             updateRankSelect();
@@ -1129,75 +1130,19 @@ async function deleteCustomRank(rankId) {
 function updateRankSelect() {
     const select = document.getElementById('rank-select');
     if (!select) return;
-    // Păstrează opțiunile de bază
+
     select.innerHTML = `
         <option value="user">User</option>
         <option value="developer">Developer</option>
         <option value="admin">Admin</option>
         <option value="owner">Owner</option>
     `;
+
     customRanks.forEach(r => {
         const opt = document.createElement('option');
         opt.value = r.rankId;
         opt.textContent = r.name + ' (' + r.rankId + ')';
         select.appendChild(opt);
-    });
-}
-
-// ============================================================
-//  NEW POST (feed)
-// ============================================================
-function initNewPost() {
-    const btn = document.getElementById('new-post-btn');
-    const modal = document.getElementById('new-post-modal');
-    const form = document.getElementById('new-post-form');
-    const textarea = document.getElementById('post-message');
-    const charCount = document.getElementById('post-char-count');
-
-    if (!btn || !modal || !form) return;
-
-    btn.addEventListener('click', () => {
-        modal.classList.remove('hidden');
-        textarea.focus();
-    });
-
-    textarea.addEventListener('input', () => {
-        charCount.textContent = textarea.value.length;
-    });
-
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const message = textarea.value.trim();
-        if (!message) return;
-
-        const submitBtn = form.querySelector('.btn-primary');
-        submitBtn.disabled = true;
-
-        try {
-            const res = await fetch(API + '/posts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: currentUser.username,
-                    token: currentUser.token,
-                    message
-                })
-            });
-            const data = await res.json();
-
-            if (data.success) {
-                modal.classList.add('hidden');
-                form.reset();
-                charCount.textContent = '0';
-                await loadFeed();
-            } else {
-                showToast(data.error || 'Failed', 'error');
-            }
-        } catch (err) {
-            showToast('Server error', 'error');
-        } finally {
-            submitBtn.disabled = false;
-        }
     });
 }
 
