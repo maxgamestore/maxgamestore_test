@@ -1,16 +1,15 @@
 // ============================================================
 //  WORLD OF FIGHTS - MAIN
 //  MaxGameStore Corporation © 2026
-//  FULL VERSION
 // ============================================================
 
 // ============================================================
 //  CONFIG
 // ============================================================
-const SERVER_URL = "https://trimmer-chrome-landfall.ngrok-free.dev";
+const SERVER_URL = window.location.origin;
 const API = SERVER_URL + "/api";
-const WS_URL = "wss://trimmer-chrome-landfall.ngrok-free.dev";
-const GAME_VERSION = "Beta 0.0.3";
+const WS_URL = SERVER_URL.replace('http://', 'ws://').replace('https://', 'wss://') + "/ws";
+const GAME_VERSION = "Beta 0.0.1";
 
 // ============================================================
 //  STATE
@@ -23,6 +22,8 @@ let ws = null;
 let lunaInterval = null;
 let pendingAttachments = [];
 let globalMsgTimeout = null;
+let currentMarketFilter = 'all';
+let pendingPurchase = null;
 
 // ============================================================
 //  INIT
@@ -38,9 +39,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     initLogout();
     initProfile();
     initSettings();
-    initAdminPanel();
     initBottomTabs();
     initChatInput();
+    initMarketFilters();
+    initPurchaseModal();
     initWebSocket();
 
     startLunaRefresh();
@@ -104,7 +106,6 @@ async function checkSession() {
         updateUI();
         await loadLuna();
         await loadLits();
-        await loadRank();
 
     } catch (err) {
         console.error('Session check failed:', err);
@@ -121,6 +122,8 @@ function updateUI() {
     document.getElementById('main-username').textContent = currentUser.username || 'Player';
     document.getElementById('main-luna').textContent = currentUser.luna || 100;
     document.getElementById('main-lits').textContent = currentUser.lits || 0;
+    document.getElementById('main-gems').textContent = currentUser.gems || 0;
+    document.getElementById('market-luna').textContent = currentUser.luna || 100;
 
     const rankEl = document.getElementById('main-rank');
     if (rankEl) {
@@ -136,7 +139,7 @@ function updateUI() {
 }
 
 // ============================================================
-//  LOAD LUNA / LITS / RANK
+//  LOAD LUNA / LITS
 // ============================================================
 async function loadLuna() {
     if (!currentUser) return;
@@ -145,6 +148,7 @@ async function loadLuna() {
         const data = await res.json();
         if (data.luna !== undefined) {
             document.getElementById('main-luna').textContent = data.luna;
+            document.getElementById('market-luna').textContent = data.luna;
             currentUser.luna = data.luna;
             localStorage.setItem('wof_session', JSON.stringify(currentUser));
         }
@@ -164,19 +168,6 @@ async function loadLits() {
     } catch (err) {}
 }
 
-async function loadRank() {
-    if (!currentUser) return;
-    try {
-        const res = await fetch(API + '/get-rank/' + currentUser.username);
-        const data = await res.json();
-        if (data.rank) {
-            currentUser.rank = data.rank;
-            localStorage.setItem('wof_session', JSON.stringify(currentUser));
-            updateUI();
-        }
-    } catch (err) {}
-}
-
 function startLunaRefresh() {
     lunaInterval = setInterval(() => {
         if (currentUser) {
@@ -184,6 +175,254 @@ function startLunaRefresh() {
             loadLits();
         }
     }, 30000);
+}
+
+// ============================================================
+//  BOTTOM TABS
+// ============================================================
+function initBottomTabs() {
+    document.querySelectorAll('.bottom-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const target = tab.dataset.tab;
+
+            document.querySelectorAll('.bottom-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            tab.classList.add('active');
+            document.getElementById('tab-' + target).classList.add('active');
+
+            if (target === 'info') loadInfo();
+            if (target === 'shop') loadShop();
+            if (target === 'market') loadMarket();
+            if (target === 'chat') loadChat();
+        });
+    });
+}
+
+// ============================================================
+//  LOAD INFO
+// ============================================================
+async function loadInfo() {
+    try {
+        const healthRes = await fetch(API + '/health');
+        const health = await healthRes.json();
+        document.getElementById('info-status').textContent = health.status === 'online' ? '🟢 Online' : '🔴 Offline';
+
+        try {
+            const statsRes = await fetch(API + '/global/stats');
+            const stats = await statsRes.json();
+            document.getElementById('info-accounts').textContent = stats.totalAccounts || 0;
+            document.getElementById('info-players').textContent = stats.onlinePlayers || 0;
+            document.getElementById('info-chat').textContent = stats.totalChatPosts || 0;
+        } catch (e) {}
+
+        document.getElementById('info-version').textContent = GAME_VERSION;
+
+        const uptime = Math.floor(health.uptime || 0);
+        const hours = Math.floor(uptime / 3600);
+        const minutes = Math.floor((uptime % 3600) / 60);
+        document.getElementById('info-uptime').textContent = hours + 'h ' + minutes + 'm';
+
+        try {
+            const updateRes = await fetch(API + '/update/timer');
+            const update = await updateRes.json();
+            if (update.active && update.timeRemaining > 0) {
+                const mins = Math.floor(update.timeRemaining / 60000);
+                document.getElementById('info-update').textContent = mins + ' min';
+            } else {
+                document.getElementById('info-update').textContent = 'None';
+            }
+        } catch (e) {
+            document.getElementById('info-update').textContent = 'None';
+        }
+
+    } catch (err) {
+        console.error('Load info error:', err);
+    }
+}
+
+// ============================================================
+//  LOAD SHOP (BANI REALI)
+// ============================================================
+function loadShop() {
+    const gemsData = [
+        { icon: '💎', name: '100 Gems', price: '$0.99' },
+        { icon: '💎', name: '500 Gems', price: '$3.99' },
+        { icon: '💎', name: '1000 Gems', price: '$6.99' },
+        { icon: '💎', name: '5000 Gems', price: '$29.99' }
+    ];
+
+    const gemsGrid = document.getElementById('shop-gems');
+    gemsGrid.innerHTML = '';
+    gemsData.forEach(item => {
+        gemsGrid.appendChild(createShopItem(item, 'gems'));
+    });
+
+    const premiumData = [
+        { icon: '⚔️', name: 'Excalibur Sword', price: '$4.99' },
+        { icon: '🛡️', name: 'Dragon Armor', price: '$7.99' },
+        { icon: '👑', name: 'Royal Crown', price: '$9.99' },
+        { icon: '🔥', name: 'Fire Cape', price: '$5.99' }
+    ];
+
+    const premiumGrid = document.getElementById('shop-premium');
+    premiumGrid.innerHTML = '';
+    premiumData.forEach(item => {
+        premiumGrid.appendChild(createShopItem(item, 'premium'));
+    });
+
+    const bpData = [
+        { icon: '🏆', name: 'Season 1 Pass', price: '$9.99' },
+        { icon: '🎖️', name: 'Premium Pass', price: '$19.99' },
+        { icon: '⭐', name: 'Ultimate Pass', price: '$29.99' }
+    ];
+
+    const bpGrid = document.getElementById('shop-battlepass');
+    bpGrid.innerHTML = '';
+    bpData.forEach(item => {
+        bpGrid.appendChild(createShopItem(item, 'battlepass'));
+    });
+}
+
+function createShopItem(item, type) {
+    const div = document.createElement('div');
+    div.className = 'shop-item';
+    div.innerHTML = `
+        <div class="shop-item-icon">${item.icon}</div>
+        <div class="shop-item-name">${item.name}</div>
+        <div class="shop-item-price">${item.price}</div>
+        <button class="shop-item-buy">Buy Now</button>
+    `;
+
+    div.querySelector('.shop-item-buy').addEventListener('click', () => {
+        showToast('Payment coming soon!', 'info');
+    });
+
+    return div;
+}
+
+// ============================================================
+//  LOAD MARKET (LUNA)
+// ============================================================
+async function loadMarket() {
+    const marketGrid = document.getElementById('market-grid');
+    if (!marketGrid) return;
+
+    marketGrid.innerHTML = '<div class="chat-loading"><div class="spinner"></div><p>Loading market...</p></div>';
+
+    try {
+        const res = await fetch(API + '/market/items');
+        const data = await res.json();
+
+        const items = data.items || [];
+
+        marketGrid.innerHTML = '';
+
+        if (items.length === 0) {
+            marketGrid.innerHTML = `
+                <div class="chat-empty">
+                    <p>🛒 Market is empty!</p>
+                    <p style="margin-top: 10px; font-size: 12px;">Items will appear here soon.</p>
+                </div>
+            `;
+            return;
+        }
+
+        items.forEach(item => {
+            if (currentMarketFilter !== 'all' && item.category !== currentMarketFilter) return;
+            marketGrid.appendChild(createMarketItem(item));
+        });
+
+    } catch (err) {
+        console.error('Load market error:', err);
+        marketGrid.innerHTML = `
+            <div class="chat-empty">
+                <p>⚠️ Market unavailable</p>
+                <p style="margin-top: 10px; font-size: 12px;">Market is coming soon!</p>
+            </div>
+        `;
+    }
+}
+
+function createMarketItem(item) {
+    const div = document.createElement('div');
+    div.className = 'market-item';
+
+    const icon = item.category === 'character' ? '👤' :
+                 item.category === 'accessory' ? '🎀' :
+                 item.category === 'weapon' ? '⚔️' :
+                 item.category === 'potion' ? '🧪' : '📦';
+
+    const price = item.price || 100;
+    const canAfford = (currentUser.luna || 100) >= price;
+
+    div.innerHTML = `
+        <div class="market-item-icon">${icon}</div>
+        <div class="market-item-name">${escapeHtml(item.name || 'Item')}</div>
+        <div class="market-item-author">by ${escapeHtml(item.author || 'System')}</div>
+        <div class="market-item-price">💰 ${price} Luna</div>
+        <button class="market-item-buy" ${canAfford ? '' : 'disabled'}>
+            ${canAfford ? 'Buy' : 'Not enough Luna'}
+        </button>
+    `;
+
+    const buyBtn = div.querySelector('.market-item-buy');
+    if (canAfford) {
+        buyBtn.addEventListener('click', () => showPurchaseModal(item));
+    }
+
+    return div;
+}
+
+function initMarketFilters() {
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentMarketFilter = btn.dataset.filter;
+            loadMarket();
+        });
+    });
+}
+
+// ============================================================
+//  PURCHASE MODAL
+// ============================================================
+function initPurchaseModal() {
+    const confirmBtn = document.getElementById('confirm-purchase-btn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', confirmPurchase);
+    }
+}
+
+function showPurchaseModal(item) {
+    pendingPurchase = item;
+
+    document.getElementById('purchase-item-name').textContent = item.name || 'Item';
+    document.getElementById('purchase-item-price').textContent = (item.price || 100) + ' Luna';
+    document.getElementById('purchase-balance').textContent = (currentUser.luna || 100) + ' Luna';
+
+    document.getElementById('purchase-modal').classList.remove('hidden');
+}
+
+async function confirmPurchase() {
+    if (!pendingPurchase) return;
+
+    const item = pendingPurchase;
+    const price = item.price || 100;
+
+    if ((currentUser.luna || 100) < price) {
+        showToast('Not enough Luna!', 'error');
+        return;
+    }
+
+    try {
+        showToast('Purchase coming soon!', 'info');
+        document.getElementById('purchase-modal').classList.add('hidden');
+        pendingPurchase = null;
+    } catch (err) {
+        showToast('Purchase failed', 'error');
+    }
 }
 
 // ============================================================
@@ -198,24 +437,18 @@ async function loadChat() {
             username: currentUser?.username || '',
             token: currentUser?.token || ''
         });
-        const res = await fetch(API + '/chat/posts?' + params);
+        const res = await fetch(API + '/game-chat/messages?' + params);
 
-        if (!res.ok) {
-            throw new Error('Server returned ' + res.status);
-        }
+        if (!res.ok) throw new Error('Server returned ' + res.status);
 
         const text = await res.text();
-
-        if (!text || text.trim() === '') {
-            throw new Error('Empty response from server');
-        }
+        if (!text || text.trim() === '') throw new Error('Empty response');
 
         let data;
         try {
             data = JSON.parse(text);
         } catch (e) {
-            console.error('Server returned HTML instead of JSON. Server is missing endpoint /api/chat/posts');
-            chatPosts.innerHTML = '<div class="chat-empty"><p>Server endpoint missing. Check server.</p></div>';
+            chatPosts.innerHTML = '<div class="chat-empty"><p>Server endpoint missing.</p></div>';
             return;
         }
 
@@ -226,10 +459,12 @@ async function loadChat() {
 
         chatPosts.innerHTML = '';
 
-        if (!data.posts || data.posts.length === 0) {
+        const posts = data.messages || data.posts || [];
+
+        if (posts.length === 0) {
             chatPosts.innerHTML = '<div class="chat-empty"><p>No messages yet. Be the first!</p></div>';
         } else {
-            data.posts.forEach(post => {
+            posts.forEach(post => {
                 chatPosts.appendChild(createChatPost(post));
             });
         }
@@ -237,7 +472,7 @@ async function loadChat() {
         const inputSection = document.getElementById('chat-input-section');
         const noPerm = document.getElementById('chat-no-permission');
 
-        if (data.canPost) {
+        if (data.canPost !== false) {
             inputSection.classList.remove('hidden');
             noPerm.classList.add('hidden');
         } else {
@@ -251,9 +486,6 @@ async function loadChat() {
     }
 }
 
-// ============================================================
-//  CREATE CHAT POST
-// ============================================================
 function createChatPost(post) {
     const wrapper = document.createElement('div');
     wrapper.className = 'chat-post';
@@ -272,7 +504,7 @@ function createChatPost(post) {
     header.innerHTML = `
         <span class="chat-post-avatar">${avatar}</span>
         <span class="chat-post-username" style="color: ${borderColor};">${escapeHtml(post.username)}</span>
-        <span class="chat-post-rank-badge" style="color: ${borderColor}; border: 1px solid ${borderColor}; background: ${hexToRgba(borderColor, 0.15)};">${rankInfo.name || rank.toUpperCase()}</span>
+        <span class="chat-post-rank-badge" style="color: ${borderColor}; border: 1px solid ${borderColor};">${rankInfo.name || rank.toUpperCase()}</span>
         <span class="chat-post-time">${timeAgo}</span>
     `;
     wrapper.appendChild(header);
@@ -282,65 +514,11 @@ function createChatPost(post) {
     bubble.style.background = bubbleColor;
     bubble.style.borderColor = borderColor;
 
-    if (post.content && (post.type === 'text' || !post.type)) {
+    if (post.content) {
         const textEl = document.createElement('div');
         textEl.className = 'chat-post-text';
         textEl.textContent = post.content;
         bubble.appendChild(textEl);
-    }
-
-    if (post.code) {
-        const codeWrapper = document.createElement('div');
-        codeWrapper.className = 'chat-post-code-wrapper';
-        codeWrapper.innerHTML = `
-            <div class="chat-post-code-header">
-                <span>${escapeHtml(post.codeLanguage || 'code')}</span>
-                <button class="chat-post-code-copy">Copy</button>
-            </div>
-            <pre class="chat-post-code"><code class="language-${post.codeLanguage || 'plaintext'}">${escapeHtml(post.code)}</code></pre>
-        `;
-        bubble.appendChild(codeWrapper);
-
-        setTimeout(() => {
-            const codeEl = codeWrapper.querySelector('code');
-            if (window.hljs && codeEl) {
-                try { hljs.highlightElement(codeEl); } catch (e) {}
-            }
-            codeWrapper.querySelector('.chat-post-code-copy').addEventListener('click', () => {
-                navigator.clipboard.writeText(post.code);
-                showToast('Code copied!', 'success');
-            });
-        }, 50);
-    }
-
-    if (post.image) {
-        const img = document.createElement('img');
-        img.className = 'chat-post-image';
-        img.src = post.image;
-        img.alt = 'image';
-        img.loading = 'lazy';
-        img.addEventListener('click', () => window.open(post.image, '_blank'));
-        bubble.appendChild(img);
-    }
-
-    if (post.link) {
-        const link = document.createElement('a');
-        link.className = 'chat-post-link';
-        link.href = post.link;
-        link.target = '_blank';
-        link.rel = 'noopener';
-        link.textContent = post.link;
-        bubble.appendChild(link);
-    }
-
-    if (post.file) {
-        const fileLink = document.createElement('a');
-        fileLink.className = 'chat-post-file';
-        fileLink.href = post.file.url || post.file;
-        fileLink.target = '_blank';
-        fileLink.rel = 'noopener';
-        fileLink.innerHTML = `<span class="chat-post-file-icon">FILE</span><span class="chat-post-file-name">${escapeHtml(post.file.name || 'file')}</span>`;
-        bubble.appendChild(fileLink);
     }
 
     wrapper.appendChild(bubble);
@@ -354,36 +532,15 @@ function createChatPost(post) {
     const likeBtn = document.createElement('span');
     likeBtn.className = 'chat-post-action' + (liked ? ' liked' : '');
     likeBtn.innerHTML = `❤️ ${likes.length}`;
-    likeBtn.addEventListener('click', () => likeChatPost(post.id));
     actions.appendChild(likeBtn);
-
-    if (currentUser) {
-        const isAuthor = post.username === currentUser.username;
-        const isStaff = ['owner', 'admin', 'developer'].includes((currentUser.rank || '').toLowerCase());
-
-        if (isAuthor || isStaff) {
-            const delBtn = document.createElement('span');
-            delBtn.className = 'chat-post-action delete';
-            delBtn.innerHTML = '🗑️ Delete';
-            delBtn.addEventListener('click', () => deleteChatPost(post.id));
-            actions.appendChild(delBtn);
-        }
-    }
 
     wrapper.appendChild(actions);
     return wrapper;
 }
 
-// ============================================================
-//  CHAT INPUT
-// ============================================================
 function initChatInput() {
     const sendBtn = document.getElementById('send-btn');
     const input = document.getElementById('chat-input');
-    const toolImage = document.getElementById('tool-image');
-    const toolLink = document.getElementById('tool-link');
-    const toolCode = document.getElementById('tool-code');
-    const toolFile = document.getElementById('tool-file');
 
     if (sendBtn) sendBtn.addEventListener('click', sendChatMessage);
 
@@ -395,150 +552,30 @@ function initChatInput() {
             }
         });
     }
-
-    if (toolImage) toolImage.addEventListener('click', () => pickFile('image'));
-    if (toolFile) toolFile.addEventListener('click', () => pickFile('file'));
-    if (toolLink) toolLink.addEventListener('click', addLink);
-    if (toolCode) toolCode.addEventListener('click', addCode);
-}
-
-function pickFile(type) {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = type === 'image' ? 'image/*' : '*/*';
-
-    input.addEventListener('change', async () => {
-        const file = input.files[0];
-        if (!file) return;
-
-        if (file.size > 100 * 1024 * 1024) {
-            showToast('File too large! Max 100MB', 'error');
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = async () => {
-            const base64 = reader.result.split(',')[1];
-
-            try {
-                const res = await fetch(API + '/chat/upload', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        username: currentUser.username,
-                        token: currentUser.token,
-                        fileData: base64,
-                        fileName: file.name,
-                        fileType: file.type
-                    })
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    pendingAttachments.push({
-                        type: data.type,
-                        url: data.url,
-                        name: data.fileName
-                    });
-                    renderAttachments();
-                    showToast('File uploaded!', 'success');
-                } else {
-                    showToast(data.error || 'Upload failed', 'error');
-                }
-            } catch (err) {
-                showToast('Upload failed', 'error');
-            }
-        };
-        reader.readAsDataURL(file);
-    });
-    input.click();
-}
-
-function addLink() {
-    const link = prompt('Enter URL (https://...):');
-    if (link && link.startsWith('http')) {
-        pendingAttachments.push({ type: 'link', url: link });
-        renderAttachments();
-    }
-}
-
-function addCode() {
-    const lang = prompt('Language (python, cpp, java, javascript, etc.):', 'python') || 'plaintext';
-    const code = prompt('Paste your code:');
-    if (code) {
-        pendingAttachments.push({ type: 'code', code, language: lang });
-        renderAttachments();
-    }
-}
-
-function renderAttachments() {
-    const container = document.getElementById('chat-attachments');
-    if (!container) return;
-    container.innerHTML = '';
-
-    pendingAttachments.forEach((att, i) => {
-        const el = document.createElement('div');
-        el.className = 'attachment-preview';
-
-        let label = '';
-        if (att.type === 'image') label = 'Image: ' + (att.name || 'image');
-        else if (att.type === 'file') label = 'File: ' + (att.name || 'file');
-        else if (att.type === 'link') label = 'Link: ' + att.url;
-        else if (att.type === 'code') label = 'Code: ' + att.language;
-
-        el.innerHTML = `<span>${escapeHtml(label)}</span><span class="remove-attachment">×</span>`;
-
-        el.querySelector('.remove-attachment').addEventListener('click', () => {
-            pendingAttachments.splice(i, 1);
-            renderAttachments();
-        });
-
-        container.appendChild(el);
-    });
 }
 
 async function sendChatMessage() {
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
 
-    if (!text && pendingAttachments.length === 0) return;
-
-    const payload = {
-        username: currentUser.username,
-        token: currentUser.token,
-        type: 'text',
-        content: text || ''
-    };
-
-    pendingAttachments.forEach(att => {
-        if (att.type === 'image') {
-            payload.image = att.url;
-            payload.type = 'image';
-        } else if (att.type === 'file') {
-            payload.file = { url: att.url, name: att.name };
-            payload.type = 'file';
-        } else if (att.type === 'link') {
-            payload.link = att.url;
-            payload.type = 'link';
-        } else if (att.type === 'code') {
-            payload.code = att.code;
-            payload.codeLanguage = att.language;
-            payload.type = 'code';
-        }
-    });
+    if (!text) return;
 
     try {
-        const res = await fetch(API + '/chat/posts', {
+        const res = await fetch(API + '/game-chat/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({
+                username: currentUser.username,
+                token: currentUser.token,
+                message: text,
+                channel: 'global'
+            })
         });
         const data = await res.json();
 
         if (data.success) {
             input.value = '';
-            pendingAttachments = [];
-            renderAttachments();
+            loadChat();
         } else {
             showToast(data.error || 'Failed to send', 'error');
         }
@@ -547,254 +584,10 @@ async function sendChatMessage() {
     }
 }
 
-async function likeChatPost(postId) {
-    if (!currentUser) return;
-    try {
-        await fetch(API + '/chat/like/' + postId, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                username: currentUser.username,
-                token: currentUser.token
-            })
-        });
-    } catch (err) {}
-}
-
-async function deleteChatPost(postId) {
-    if (!confirm('Delete this post?')) return;
-    try {
-        const params = new URLSearchParams({
-            username: currentUser.username,
-            token: currentUser.token
-        });
-        const res = await fetch(API + '/chat/posts/' + postId + '?' + params, {
-            method: 'DELETE'
-        });
-        const data = await res.json();
-        if (data.success) {
-            showToast('Deleted', 'success');
-        }
-    } catch (err) {}
-}
-
-// ============================================================
-//  BOTTOM TABS
-// ============================================================
-function initBottomTabs() {
-    document.querySelectorAll('.bottom-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            const target = tab.dataset.tab;
-
-            document.querySelectorAll('.bottom-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
-            tab.classList.add('active');
-            document.getElementById('tab-' + target).classList.add('active');
-        });
-    });
-}
-
-// ============================================================
-//  WEBSOCKET
-// ============================================================
-function initWebSocket() {
-    if (!currentUser) return;
-
-    try {
-        ws = new WebSocket(WS_URL);
-
-        ws.onopen = () => {
-            const authMsg = `AUTH:${currentUser.token}:${currentUser.username}:${currentUser.sessionId}:${GAME_VERSION}`;
-            console.log('🔌 WS auth with version:', GAME_VERSION);
-            ws.send(authMsg);
-        };
-
-        ws.onmessage = (event) => {
-            const msg = event.data;
-
-            try {
-                const data = JSON.parse(msg);
-                if (data.type === 'CHAT_POST') {
-                    addChatPostRealtime(data.post);
-                } else if (data.type === 'CHAT_DELETE') {
-                    removeChatPostRealtime(data.postId);
-                } else if (data.type === 'CHAT_LIKE') {
-                    updateChatLikes(data.postId, data.likes);
-                } else if (data.type === 'GLOBAL_MESSAGE') {
-                    showGlobalMessage(data.from, data.message);
-                } else if (data.type === 'CHAT_PERMISSIONS_UPDATE') {
-                    chatPermissions = data.permissions;
-                    loadChat();
-                } else if (data.type === 'CHAT_CLEAR') {
-                    document.getElementById('chat-posts').innerHTML = '<div class="chat-empty"><p>Chat cleared.</p></div>';
-                }
-            } catch (e) {}
-
-            if (msg.startsWith('AUTH_SUCCESS')) {
-                console.log('✅ WS authenticated');
-                ws.send('REGISTER_NAME:' + currentUser.username);
-            } else if (msg.startsWith('AUTH_FAILED')) {
-                console.error('❌ WS auth failed:', msg);
-            } else if (msg.startsWith('LUNA_UPDATE:')) {
-                const luna = parseInt(msg.substring(12));
-                document.getElementById('main-luna').textContent = luna;
-                currentUser.luna = luna;
-                localStorage.setItem('wof_session', JSON.stringify(currentUser));
-            } else if (msg.startsWith('LITS_UPDATE:')) {
-                const lits = parseInt(msg.substring(12));
-                document.getElementById('main-lits').textContent = lits;
-                currentUser.lits = lits;
-                localStorage.setItem('wof_session', JSON.stringify(currentUser));
-            } else if (msg.startsWith('GIFT_RECEIVED:')) {
-                const parts = msg.substring(14).split(':');
-                showToast(`Gift: ${parts[0]} Luna, ${parts[1]} Lits from ${parts[2]}`, 'success');
-                loadLuna();
-                loadLits();
-            } else if (msg.startsWith('RANK_UPDATE:')) {
-                const rank = msg.substring(12);
-                currentUser.rank = rank;
-                localStorage.setItem('wof_session', JSON.stringify(currentUser));
-                updateUI();
-                showToast('Your rank was updated to ' + rank, 'info');
-            } else if (msg.startsWith('BANNED:')) {
-                alert('You have been banned: ' + msg.substring(7));
-                localStorage.removeItem('wof_session');
-                window.location.href = '../login/login.html';
-            }
-        };
-
-        ws.onclose = () => {
-            console.log('WS disconnected. Reconnecting in 5s...');
-            setTimeout(initWebSocket, 5000);
-        };
-
-        ws.onerror = (err) => console.error('WS error:', err);
-
-    } catch (err) {
-        console.error('WS init failed:', err);
-    }
-}
-
-function addChatPostRealtime(post) {
-    const chatPosts = document.getElementById('chat-posts');
-    if (!chatPosts) return;
-
-    const empty = chatPosts.querySelector('.chat-empty');
-    if (empty) empty.remove();
-
-    const postEl = createChatPost(post);
-    chatPosts.insertBefore(postEl, chatPosts.firstChild);
-}
-
-function removeChatPostRealtime(postId) {
-    const el = document.querySelector(`.chat-post[data-id="${postId}"]`);
-    if (el) el.remove();
-}
-
-function updateChatLikes(postId, likes) {
-    const el = document.querySelector(`.chat-post[data-id="${postId}"]`);
-    if (!el) return;
-    const likeBtn = el.querySelector('.chat-post-action');
-    if (likeBtn) {
-        const liked = likes.includes(currentUser.username);
-        likeBtn.className = 'chat-post-action' + (liked ? ' liked' : '');
-        likeBtn.innerHTML = `❤️ ${likes.length}`;
-    }
-}
-
-// ============================================================
-//  GLOBAL MESSAGE
-// ============================================================
-function showGlobalMessage(from, message) {
-    const overlay = document.getElementById('global-message-overlay');
-    const fromEl = document.getElementById('global-message-from');
-    const textEl = document.getElementById('global-message-text');
-
-    fromEl.textContent = from;
-    textEl.textContent = message;
-    overlay.classList.remove('hidden', 'fade-out');
-
-    if (globalMsgTimeout) clearTimeout(globalMsgTimeout);
-
-    globalMsgTimeout = setTimeout(() => {
-        overlay.classList.add('fade-out');
-        setTimeout(() => overlay.classList.add('hidden'), 500);
-    }, 5000);
-}
-
-// ============================================================
-//  TOAST
-// ============================================================
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = 'toast ' + type;
-    toast.textContent = message;
-    container.appendChild(toast);
-
-    setTimeout(() => {
-        toast.classList.add('fade-out');
-        setTimeout(() => toast.remove(), 400);
-    }, 3000);
-}
-
-// ============================================================
-//  LOAD PERMISSIONS / RANKS / SETTINGS
-// ============================================================
-async function loadChatPermissions() {
-    try {
-        const res = await fetch(API + '/chat/permissions');
-        chatPermissions = await res.json();
-    } catch (err) {}
-}
-
-async function loadCustomRanks() {
-    try {
-        const res = await fetch(API + '/ranks/custom');
-        const data = await res.json();
-        customRanks = data.ranks || [];
-        updateRankSelect();
-    } catch (err) {}
-}
-
-async function loadUserSettings() {
-    if (!currentUser) return;
-    try {
-        const res = await fetch(API + '/user/settings/' + currentUser.username);
-        currentSettings = await res.json();
-    } catch (err) {
-        currentSettings = {};
-    }
-}
-
-function getRankInfo(rankId) {
-    const defaults = {
-        owner: { name: 'OWNER', color: '#ffd700', icon: '👑' },
-        admin: { name: 'ADMIN', color: '#ff0044', icon: '⚙️' },
-        developer: { name: 'DEVELOPER', color: '#33aaff', icon: '💻' },
-        user: { name: 'USER', color: '#b0b0b8', icon: '👤' }
-    };
-
-    if (defaults[rankId]) return defaults[rankId];
-
-    const custom = customRanks.find(r => r.rankId === rankId);
-    if (custom) return { name: custom.name, color: custom.color, icon: custom.icon };
-
-    return { name: rankId.toUpperCase(), color: '#b0b0b8', icon: '👤' };
-}
-
 // ============================================================
 //  MENU / LOGOUT / PROFILE
 // ============================================================
 function initMenuLinks() {
-    document.querySelectorAll('.menu-link[data-menu]').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            showToast(link.dataset.menu.toUpperCase() + ' coming soon', 'info');
-        });
-    });
-
     const nameEl = document.getElementById('main-username');
     if (nameEl) nameEl.addEventListener('click', openProfile);
 }
@@ -846,6 +639,7 @@ function openProfile() {
     document.getElementById('p-email').textContent = currentUser.email || '-';
     document.getElementById('p-luna').textContent = currentUser.luna || 100;
     document.getElementById('p-lits').textContent = currentUser.lits || 0;
+    document.getElementById('p-gems').textContent = currentUser.gems || 0;
     document.getElementById('profile-modal').classList.remove('hidden');
 }
 
@@ -862,300 +656,130 @@ function initSettings() {
     btn.addEventListener('click', (e) => {
         e.preventDefault();
         document.getElementById('setting-bubble-color').value = currentSettings.bubbleColor || '#16161e';
-        document.getElementById('setting-theme').value = currentSettings.theme || 'dark';
-        document.getElementById('setting-font-size').value = currentSettings.fontSize || 'medium';
-        document.getElementById('setting-notifications').checked = currentSettings.notifications !== false;
         modal.classList.remove('hidden');
     });
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-
-        const settings = {
-            bubbleColor: document.getElementById('setting-bubble-color').value,
-            theme: document.getElementById('setting-theme').value,
-            fontSize: document.getElementById('setting-font-size').value,
-            notifications: document.getElementById('setting-notifications').checked
-        };
-
-        try {
-            const res = await fetch(API + '/user/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: currentUser.username,
-                    token: currentUser.token,
-                    settings
-                })
-            });
-            const data = await res.json();
-
-            if (data.success) {
-                currentSettings = data.settings;
-                modal.classList.add('hidden');
-                showToast('Settings saved!', 'success');
-                loadChat();
-            }
-        } catch (err) {
-            showToast('Failed to save', 'error');
-        }
+        showToast('Settings saved!', 'success');
+        modal.classList.add('hidden');
     });
 }
 
 // ============================================================
-//  ADMIN PANEL
+//  LOAD SETTINGS
 // ============================================================
-function initAdminPanel() {
-    const btn = document.getElementById('admin-btn');
-    const modal = document.getElementById('admin-modal');
-
-    if (!btn || !modal) return;
-
-    btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        modal.classList.remove('hidden');
-        renderCustomRanksList();
-    });
-
-    document.querySelectorAll('.admin-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            const target = tab.dataset.adminTab;
-            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.admin-content').forEach(c => c.classList.remove('active'));
-            tab.classList.add('active');
-            document.getElementById('admin-' + target).classList.add('active');
-        });
-    });
-
-    document.getElementById('send-global-btn').addEventListener('click', async () => {
-        const message = document.getElementById('global-message-input').value.trim();
-        if (!message) return;
-
-        try {
-            const res = await fetch(API + '/admin/global-message', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: currentUser.username,
-                    token: currentUser.token,
-                    message
-                })
-            });
-            const data = await res.json();
-
-            if (data.success) {
-                document.getElementById('global-message-input').value = '';
-                showToast('Global message sent!', 'success');
-            } else {
-                showToast(data.error || 'Failed', 'error');
-            }
-        } catch (err) {
-            showToast('Server error', 'error');
-        }
-    });
-
-    document.getElementById('send-gift-btn').addEventListener('click', async () => {
-        const targetUser = document.getElementById('gift-username').value.trim();
-        const lunaAmount = parseInt(document.getElementById('gift-luna').value) || 0;
-        const litsAmount = parseInt(document.getElementById('gift-lits').value) || 0;
-
-        if (!targetUser) return showToast('Enter username', 'error');
-
-        try {
-            const res = await fetch(API + '/admin/gift', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: currentUser.username,
-                    token: currentUser.token,
-                    targetUser,
-                    lunaAmount,
-                    litsAmount
-                })
-            });
-            const data = await res.json();
-
-            if (data.success) {
-                showToast('Gift sent!', 'success');
-                document.getElementById('gift-username').value = '';
-                document.getElementById('gift-luna').value = 0;
-                document.getElementById('gift-lits').value = 0;
-            } else {
-                showToast(data.error || 'Failed', 'error');
-            }
-        } catch (err) {}
-    });
-
-    document.getElementById('set-rank-btn').addEventListener('click', async () => {
-        const targetUser = document.getElementById('rank-username').value.trim();
-        const newRank = document.getElementById('rank-select').value;
-
-        if (!targetUser) return showToast('Enter username', 'error');
-
-        try {
-            const res = await fetch(API + '/admin/set-rank', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: currentUser.username,
-                    token: currentUser.token,
-                    targetUser,
-                    newRank
-                })
-            });
-            const data = await res.json();
-
-            if (data.success) {
-                showToast('Rank updated!', 'success');
-                document.getElementById('rank-username').value = '';
-            } else {
-                showToast(data.error || 'Failed', 'error');
-            }
-        } catch (err) {}
-    });
-
-    document.getElementById('ban-user-btn').addEventListener('click', async () => {
-        const targetUser = document.getElementById('ban-username').value.trim();
-        const reason = document.getElementById('ban-reason').value.trim();
-        const duration = parseInt(document.getElementById('ban-duration').value) || null;
-
-        if (!targetUser) return showToast('Enter username', 'error');
-
-        try {
-            const res = await fetch(API + '/admin/ban', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: currentUser.username,
-                    token: currentUser.token,
-                    targetUser,
-                    reason,
-                    duration
-                })
-            });
-            const data = await res.json();
-
-            if (data.success) {
-                showToast('User banned!', 'success');
-                document.getElementById('ban-username').value = '';
-                document.getElementById('ban-reason').value = '';
-                document.getElementById('ban-duration').value = '';
-            } else {
-                showToast(data.error || 'Failed', 'error');
-            }
-        } catch (err) {}
-    });
-
-    document.getElementById('create-rank-btn').addEventListener('click', async () => {
-        const rankId = document.getElementById('custom-rank-id').value.trim();
-        const name = document.getElementById('custom-rank-name').value.trim();
-        const color = document.getElementById('custom-rank-color').value;
-        const icon = document.getElementById('custom-rank-icon').value.trim() || '⭐';
-
-        if (!rankId || !name) return showToast('Fill rankId and name', 'error');
-
-        const permissions = {};
-        document.querySelectorAll('.permissions-list input[type="checkbox"]').forEach(cb => {
-            permissions[cb.dataset.perm] = cb.checked;
-        });
-
-        try {
-            const res = await fetch(API + '/ranks/custom', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: currentUser.username,
-                    token: currentUser.token,
-                    rankId,
-                    name,
-                    color,
-                    icon,
-                    permissions
-                })
-            });
-            const data = await res.json();
-
-            if (data.success) {
-                showToast('Custom rank created!', 'success');
-                await loadCustomRanks();
-                renderCustomRanksList();
-                updateRankSelect();
-
-                document.getElementById('custom-rank-id').value = '';
-                document.getElementById('custom-rank-name').value = '';
-                document.getElementById('custom-rank-icon').value = '';
-                document.querySelectorAll('.permissions-list input[type="checkbox"]').forEach(cb => cb.checked = false);
-            } else {
-                showToast(data.error || 'Failed', 'error');
-            }
-        } catch (err) {}
-    });
-}
-
-function renderCustomRanksList() {
-    const list = document.getElementById('custom-ranks-list');
-    if (!list) return;
-    list.innerHTML = '';
-
-    if (customRanks.length === 0) {
-        list.innerHTML = '<p style="color:var(--text-muted); font-size:12px;">No custom ranks yet.</p>';
-        return;
-    }
-
-    customRanks.forEach(rank => {
-        const el = document.createElement('div');
-        el.className = 'custom-rank-item';
-        el.innerHTML = `
-            <span class="custom-rank-icon">${rank.icon}</span>
-            <span class="custom-rank-name" style="color: ${rank.color};">${escapeHtml(rank.name)}</span>
-            <span class="custom-rank-id">${rank.rankId}</span>
-            <button class="custom-rank-delete" data-id="${rank.rankId}">DELETE</button>
-        `;
-
-        el.querySelector('.custom-rank-delete').addEventListener('click', () => deleteCustomRank(rank.rankId));
-        list.appendChild(el);
-    });
-}
-
-async function deleteCustomRank(rankId) {
-    if (!confirm('Delete rank ' + rankId + '?')) return;
-
+async function loadUserSettings() {
+    if (!currentUser) return;
     try {
-        const params = new URLSearchParams({
-            username: currentUser.username,
-            token: currentUser.token
-        });
-        const res = await fetch(API + '/ranks/custom/' + rankId + '?' + params, {
-            method: 'DELETE'
-        });
-        const data = await res.json();
+        const res = await fetch(API + '/user/settings/' + currentUser.username);
+        currentSettings = await res.json();
+    } catch (err) {
+        currentSettings = {};
+    }
+}
 
-        if (data.success) {
-            showToast('Rank deleted!', 'success');
-            await loadCustomRanks();
-            renderCustomRanksList();
-            updateRankSelect();
-        }
+async function loadChatPermissions() {
+    try {
+        const res = await fetch(API + '/chat/permissions');
+        chatPermissions = await res.json();
     } catch (err) {}
 }
 
-function updateRankSelect() {
-    const select = document.getElementById('rank-select');
-    if (!select) return;
+async function loadCustomRanks() {
+    try {
+        const res = await fetch(API + '/ranks/custom');
+        const data = await res.json();
+        customRanks = data.ranks || [];
+    } catch (err) {}
+}
 
-    select.innerHTML = `
-        <option value="user">User</option>
-        <option value="developer">Developer</option>
-        <option value="admin">Admin</option>
-        <option value="owner">Owner</option>
-    `;
+function getRankInfo(rankId) {
+    const defaults = {
+        owner: { name: 'OWNER', color: '#ffd700', icon: '👑' },
+        admin: { name: 'ADMIN', color: '#ff0044', icon: '⚙️' },
+        developer: { name: 'DEVELOPER', color: '#33aaff', icon: '💻' },
+        user: { name: 'USER', color: '#b0b0b8', icon: '👤' }
+    };
 
-    customRanks.forEach(r => {
-        const opt = document.createElement('option');
-        opt.value = r.rankId;
-        opt.textContent = r.name + ' (' + r.rankId + ')';
-        select.appendChild(opt);
-    });
+    if (defaults[rankId]) return defaults[rankId];
+    return { name: rankId.toUpperCase(), color: '#b0b0b8', icon: '👤' };
+}
+
+// ============================================================
+//  WEBSOCKET
+// ============================================================
+function initWebSocket() {
+    if (!currentUser) return;
+
+    try {
+        ws = new WebSocket(WS_URL);
+
+        ws.onopen = () => {
+            const authMsg = `AUTH:${currentUser.token}:${currentUser.username}:${currentUser.sessionId}:${GAME_VERSION}`;
+            ws.send(authMsg);
+        };
+
+        ws.onmessage = (event) => {
+            const msg = event.data;
+
+            try {
+                const data = JSON.parse(msg);
+                if (data.type === 'GLOBAL_MESSAGE') {
+                    showGlobalMessage(data.from, data.message);
+                }
+            } catch (e) {}
+
+            if (msg.startsWith('AUTH_SUCCESS')) {
+                console.log('✅ WS authenticated');
+            } else if (msg.startsWith('LUNA_UPDATE:')) {
+                const luna = parseInt(msg.substring(12));
+                document.getElementById('main-luna').textContent = luna;
+                document.getElementById('market-luna').textContent = luna;
+                currentUser.luna = luna;
+                localStorage.setItem('wof_session', JSON.stringify(currentUser));
+            }
+        };
+
+        ws.onclose = () => {
+            setTimeout(initWebSocket, 5000);
+        };
+
+    } catch (err) {}
+}
+
+// ============================================================
+//  GLOBAL MESSAGE
+// ============================================================
+function showGlobalMessage(from, message) {
+    const overlay = document.getElementById('global-message-overlay');
+    const fromEl = document.getElementById('global-message-from');
+    const textEl = document.getElementById('global-message-text');
+
+    fromEl.textContent = from;
+    textEl.textContent = message;
+    overlay.classList.remove('hidden');
+
+    if (globalMsgTimeout) clearTimeout(globalMsgTimeout);
+
+    globalMsgTimeout = setTimeout(() => {
+        overlay.classList.add('hidden');
+    }, 5000);
+}
+
+// ============================================================
+//  TOAST
+// ============================================================
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast ' + type;
+    toast.textContent = message;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
 }
 
 // ============================================================
@@ -1189,14 +813,6 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text || '';
     return div.innerHTML;
-}
-
-function hexToRgba(hex, alpha) {
-    if (!hex || !hex.startsWith('#')) return `rgba(255, 215, 0, ${alpha})`;
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 // ============================================================
