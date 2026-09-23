@@ -112,7 +112,6 @@ async function checkSession() {
 function updateUI() {
     if (!currentUser) return;
 
-    // Platform bar
     const mainUser = document.getElementById('main-username');
     const mainRank = document.getElementById('main-rank');
     const mainGems = document.getElementById('main-gems');
@@ -121,7 +120,6 @@ function updateUI() {
     if (mainRank) mainRank.textContent = (currentUser.rank || 'user').toUpperCase();
     if (mainGems) mainGems.textContent = currentUser.gems || 0;
 
-    // WOF bar
     const wofUser = document.getElementById('wof-username');
     const wofRank = document.getElementById('wof-rank');
     const wofLuna = document.getElementById('wof-luna');
@@ -410,15 +408,16 @@ function startWofTransition() {
     const platformBar = document.getElementById('top-bar-platform');
     const wofBar = document.getElementById('top-bar-wof');
     const bgLayer = document.getElementById('background-layer');
-    const wofTitleBar = document.getElementById('wof-title-bar');
-    const wofNameBar = document.getElementById('wof-name-bar');
 
     if (!title || !platformBar || !wofBar || !bgLayer) {
         console.error('Missing elements for transition');
         return;
     }
 
-    // PASUL 1: Hide platform bar (slide up)
+    const wofTitleBar = document.getElementById('wof-title-bar');
+    const wofNameBar = document.getElementById('wof-name-bar');
+
+    // PASUL 1: Hide platform bar
     platformBar.style.transition = 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
     platformBar.style.opacity = '0';
     platformBar.style.transform = 'translateY(-100%)';
@@ -427,32 +426,27 @@ function startWofTransition() {
     content.style.transition = 'opacity 0.3s ease';
     content.style.opacity = '0';
 
-    // PASUL 3: Show background layer (WOF) + title flying
+    // PASUL 3: Show background + title
     setTimeout(() => {
         bgLayer.classList.remove('hidden');
         title.classList.remove('hidden');
-
-        // Title appears in center
         requestAnimationFrame(() => {
             title.classList.add('visible');
         });
     }, 400);
 
-    // PASUL 4: Title shrink (move to bar position)
+    // PASUL 4: Title shrink
     setTimeout(() => {
         title.classList.add('shrink');
     }, 1500);
 
     // PASUL 5: Show WOF bar
     setTimeout(() => {
-        // Hide platform bar permanently
         platformBar.classList.add('hidden');
 
-        // Make WOF title/name in bar invisible initially
         if (wofTitleBar) wofTitleBar.style.opacity = '0';
         if (wofNameBar) wofNameBar.style.opacity = '0';
 
-        // Show WOF bar
         wofBar.classList.remove('hidden');
         wofBar.style.opacity = '0';
         wofBar.style.transform = 'translateY(-100%)';
@@ -462,7 +456,6 @@ function startWofTransition() {
             wofBar.style.opacity = '1';
             wofBar.style.transform = 'translateY(0)';
 
-            // Fade in title/name in bar
             setTimeout(() => {
                 if (wofTitleBar) {
                     wofTitleBar.style.transition = 'opacity 0.3s ease';
@@ -475,29 +468,29 @@ function startWofTransition() {
             }, 200);
         });
 
-        // Make content transparent (background visible)
         content.classList.add('wof-active');
 
-        // Render WOF Info
-        new WofInfo().render(content);
+        // WOF Info
+        if (typeof WofInfo !== 'undefined') {
+            new WofInfo().render(content);
+        } else {
+            content.innerHTML = '<div class="wof-page"><h1>⚔️ World Of Fights</h1></div>';
+        }
 
-        // Set active tab
         document.querySelectorAll('#top-bar-wof .menu-link').forEach(l => {
             l.classList.toggle('active', l.dataset.wof === 'info');
         });
 
-        // Show content again
         setTimeout(() => {
             content.style.opacity = '1';
         }, 100);
     }, 2300);
 
-    // PASUL 6: Hide title flying (after it landed)
+    // PASUL 6: Hide flying title
     setTimeout(() => {
         title.classList.add('hidden');
         title.classList.remove('visible', 'shrink');
 
-        // Reset title styles
         title.style.transition = 'none';
         title.style.top = '50%';
         title.style.left = '50%';
@@ -521,11 +514,9 @@ function initWofMenu() {
                 return;
             }
 
-            // Update active
             document.querySelectorAll('#top-bar-wof .menu-link').forEach(l => l.classList.remove('active'));
             link.classList.add('active');
 
-            // Switch view
             showWofView(link.dataset.wof);
         });
     });
@@ -535,14 +526,20 @@ function showWofView(view) {
     currentWofView = view;
     const content = document.getElementById('content-area');
 
-    if (view === 'shop') new WofShop().render(content);
-    if (view === 'market') new WofMarket().render(content);
-    if (view === 'chat') new WofChat().render(content);
-    if (view === 'info') new WofInfo().render(content);
+    try {
+        if (view === 'shop' && typeof WofShop !== 'undefined') new WofShop().render(content);
+        else if (view === 'market' && typeof WofMarket !== 'undefined') new WofMarket().render(content);
+        else if (view === 'chat' && typeof WofChat !== 'undefined') new WofChat().render(content);
+        else if (view === 'info' && typeof WofInfo !== 'undefined') new WofInfo().render(content);
+        else content.innerHTML = '<div class="wof-page"><h1>Coming soon</h1></div>';
+    } catch (err) {
+        console.error('WOF view error:', err);
+        content.innerHTML = '<div class="wof-page"><h1>Error loading view</h1></div>';
+    }
 }
 
 // ============================================================
-//  WOF BACK BUTTON
+//  WOF BACK
 // ============================================================
 function initWofBackBtn() {
     const btn = document.getElementById('wof-back-btn');
@@ -554,23 +551,15 @@ function initWofBackBtn() {
         const bgLayer = document.getElementById('background-layer');
         const content = document.getElementById('content-area');
 
-        // Fade out content
         content.style.opacity = '0';
-
-        // Hide WOF bar
         wofBar.style.opacity = '0';
         wofBar.style.transform = 'translateY(-100%)';
 
         setTimeout(() => {
             wofBar.classList.add('hidden');
-
-            // Hide background layer
             bgLayer.classList.add('hidden');
-
-            // Remove wof-active class
             content.classList.remove('wof-active');
 
-            // Show platform bar
             platformBar.classList.remove('hidden');
             platformBar.style.opacity = '0';
             platformBar.style.transform = 'translateY(-100%)';
@@ -580,7 +569,6 @@ function initWofBackBtn() {
                 platformBar.style.transform = 'translateY(0)';
             });
 
-            // Show games view
             showPlatformView('games');
             content.style.opacity = '1';
         }, 400);
@@ -591,17 +579,11 @@ function initWofBackBtn() {
 //  LOGOUT
 // ============================================================
 function initLogout() {
-    const logoutBtns = [
-        document.getElementById('logout-btn'),
-        document.getElementById('wof-logout-btn')
-    ];
-
-    logoutBtns.forEach(btn => {
+    [document.getElementById('logout-btn'), document.getElementById('wof-logout-btn')].forEach(btn => {
         if (!btn) return;
-
         btn.addEventListener('click', async (e) => {
             e.preventDefault();
-            if (!confirm('Are you sure you want to logout?')) return;
+            if (!confirm('Logout?')) return;
 
             try {
                 await fetch(API + '/logout', {
@@ -641,23 +623,13 @@ function initProfile() {
 
 function openProfile() {
     if (!currentUser) return;
-
-    const pUser = document.getElementById('p-username');
-    const pRank = document.getElementById('p-rank');
-    const pEmail = document.getElementById('p-email');
-    const pGems = document.getElementById('p-gems');
-    const pLuna = document.getElementById('p-luna');
-    const pLits = document.getElementById('p-lits');
-
-    if (pUser) pUser.textContent = currentUser.username || '-';
-    if (pRank) pRank.textContent = (currentUser.rank || 'user').toUpperCase();
-    if (pEmail) pEmail.textContent = currentUser.email || '-';
-    if (pGems) pGems.textContent = currentUser.gems || 0;
-    if (pLuna) pLuna.textContent = currentUser.luna || 100;
-    if (pLits) pLits.textContent = currentUser.lits || 0;
-
-    const modal = document.getElementById('profile-modal');
-    if (modal) modal.classList.remove('hidden');
+    document.getElementById('p-username').textContent = currentUser.username || '-';
+    document.getElementById('p-rank').textContent = (currentUser.rank || 'user').toUpperCase();
+    document.getElementById('p-email').textContent = currentUser.email || '-';
+    document.getElementById('p-gems').textContent = currentUser.gems || 0;
+    document.getElementById('p-luna').textContent = currentUser.luna || 100;
+    document.getElementById('p-lits').textContent = currentUser.lits || 0;
+    document.getElementById('profile-modal').classList.remove('hidden');
 }
 
 // ============================================================
@@ -671,13 +643,9 @@ function initSettings() {
 
     if (!modal) return;
 
-    const openModal = (e) => {
-        e.preventDefault();
-        modal.classList.remove('hidden');
-    };
-
-    if (btn) btn.addEventListener('click', openModal);
-    if (btnWof) btnWof.addEventListener('click', openModal);
+    const open = (e) => { e.preventDefault(); modal.classList.remove('hidden'); };
+    if (btn) btn.addEventListener('click', open);
+    if (btnWof) btnWof.addEventListener('click', open);
 
     if (form) {
         form.addEventListener('submit', (e) => {
@@ -693,9 +661,7 @@ async function loadUserSettings() {
     try {
         const res = await fetch(API + '/user/settings/' + currentUser.username);
         currentSettings = await res.json();
-    } catch (err) {
-        currentSettings = {};
-    }
+    } catch (err) { currentSettings = {}; }
 }
 
 // ============================================================
@@ -708,8 +674,7 @@ function initWebSocket() {
         ws = new WebSocket(WS_URL);
 
         ws.onopen = () => {
-            const authMsg = `AUTH:${currentUser.token}:${currentUser.username}:${currentUser.sessionId}:${GAME_VERSION}`;
-            ws.send(authMsg);
+            ws.send(`AUTH:${currentUser.token}:${currentUser.username}:${currentUser.sessionId}:${GAME_VERSION}`);
         };
 
         ws.onmessage = (event) => {
@@ -717,9 +682,7 @@ function initWebSocket() {
 
             try {
                 const data = JSON.parse(msg);
-                if (data.type === 'GLOBAL_MESSAGE') {
-                    showGlobalMessage(data.from, data.message);
-                }
+                if (data.type === 'GLOBAL_MESSAGE') showGlobalMessage(data.from, data.message);
             } catch (e) {}
 
             if (msg.startsWith('LUNA_UPDATE:')) {
@@ -735,19 +698,15 @@ function initWebSocket() {
                 if (el) el.textContent = lits;
                 localStorage.setItem('wof_session', JSON.stringify(currentUser));
             } else if (msg.startsWith('BANNED:')) {
-                alert('You have been banned: ' + msg.substring(7));
+                alert('Banned: ' + msg.substring(7));
                 localStorage.removeItem('wof_session');
                 window.location.href = '../login/login.html';
             }
         };
 
-        ws.onclose = () => {
-            setTimeout(initWebSocket, 5000);
-        };
+        ws.onclose = () => setTimeout(initWebSocket, 5000);
 
-    } catch (err) {
-        console.error('WebSocket init failed:', err);
-    }
+    } catch (err) {}
 }
 
 // ============================================================
@@ -755,20 +714,14 @@ function initWebSocket() {
 // ============================================================
 function showGlobalMessage(from, message) {
     const overlay = document.getElementById('global-message-overlay');
-    const fromEl = document.getElementById('global-message-from');
-    const textEl = document.getElementById('global-message-text');
-
     if (!overlay) return;
 
-    if (fromEl) fromEl.textContent = from;
-    if (textEl) textEl.textContent = message;
+    document.getElementById('global-message-from').textContent = from;
+    document.getElementById('global-message-text').textContent = message;
     overlay.classList.remove('hidden');
 
     if (globalMsgTimeout) clearTimeout(globalMsgTimeout);
-
-    globalMsgTimeout = setTimeout(() => {
-        overlay.classList.add('hidden');
-    }, 5000);
+    globalMsgTimeout = setTimeout(() => overlay.classList.add('hidden'), 5000);
 }
 
 // ============================================================
@@ -782,10 +735,7 @@ function showToast(message, type = 'info') {
     toast.className = 'toast ' + type;
     toast.textContent = message;
     container.appendChild(toast);
-
-    setTimeout(() => {
-        toast.remove();
-    }, 3000);
+    setTimeout(() => toast.remove(), 3000);
 }
 
 // ============================================================
