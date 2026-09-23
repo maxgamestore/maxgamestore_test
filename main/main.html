@@ -10,9 +10,9 @@
 <body>
 
     <!-- ============================================================
-         BACKGROUND PERSISTENT (mereu vizibil)
+         BACKGROUND PERSISTENT (doar în WOF)
          ============================================================ -->
-    <div class="background-layer">
+    <div class="background-layer hidden" id="background-layer">
         <div class="bg-sky"></div>
         <div class="bg-ground">
             <div class="bg-trees"></div>
@@ -25,7 +25,7 @@
     <div class="main-container" id="main-container">
 
         <!-- ============================================================
-             TOP BAR - PLATFORM (MaxGameStore)
+             TOP BAR - PLATFORM
              ============================================================ -->
         <div class="top-bar top-bar-platform" id="top-bar-platform">
             <div class="bar-left">
@@ -51,13 +51,13 @@
         </div>
 
         <!-- ============================================================
-             TOP BAR - WOF (hidden, apare după animație)
+             TOP BAR - WOF
              ============================================================ -->
         <div class="top-bar top-bar-wof hidden" id="top-bar-wof">
             <div class="bar-left">
                 <button class="bar-icon-btn" id="wof-back-btn">←</button>
                 <span class="brand-logo-wof" id="wof-title-bar">⚔️</span>
-                <span class="brand-name-wof">World Of Fights</span>
+                <span class="brand-name-wof" id="wof-name-bar">World Of Fights</span>
             </div>
             <div class="bar-right">
                 <span class="user-info">
@@ -83,11 +83,9 @@
         <div class="content-area" id="content-area"></div>
 
         <!-- ============================================================
-             WOF ANIMATION OVERLAY (doar titlul zboară)
+             WOF TITLE FLYING (animație)
              ============================================================ -->
-        <div class="wof-animation hidden" id="wof-animation">
-            <div class="wof-title-flying" id="wof-title-flying">⚔️ World Of Fights</div>
-        </div>
+        <div class="wof-title-flying hidden" id="wof-title-flying">⚔️ World Of Fights</div>
 
     </div>
 
