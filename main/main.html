@@ -9,10 +9,25 @@
 </head>
 <body>
 
+    <!-- ============================================================
+         BACKGROUND PERSISTENT (mereu vizibil)
+         ============================================================ -->
+    <div class="background-layer">
+        <div class="bg-sky"></div>
+        <div class="bg-ground">
+            <div class="bg-trees"></div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         MAIN CONTAINER
+         ============================================================ -->
     <div class="main-container" id="main-container">
 
-        <!-- TOP BAR PLATFORM -->
-        <div class="top-bar" id="top-bar-platform">
+        <!-- ============================================================
+             TOP BAR - PLATFORM (MaxGameStore)
+             ============================================================ -->
+        <div class="top-bar top-bar-platform" id="top-bar-platform">
             <div class="bar-left">
                 <span class="brand-logo">🏢</span>
                 <span class="brand-name">MAXGAMESTORE</span>
@@ -30,16 +45,18 @@
                     <span class="user-rank" id="main-rank">USER</span>
                 </span>
                 <span class="user-gems" title="Gems">💵 <span id="main-gems">0</span></span>
-                <a href="#" class="bar-icon-btn" id="settings-btn" title="Settings">⚙️</a>
-                <a href="#" class="bar-icon-btn logout" id="logout-btn" title="Logout">🚪</a>
+                <a href="#" class="bar-icon-btn" id="settings-btn">⚙️</a>
+                <a href="#" class="bar-icon-btn logout" id="logout-btn">🚪</a>
             </div>
         </div>
 
-        <!-- TOP BAR WOF -->
+        <!-- ============================================================
+             TOP BAR - WOF (hidden, apare după animație)
+             ============================================================ -->
         <div class="top-bar top-bar-wof hidden" id="top-bar-wof">
             <div class="bar-left">
-                <button class="bar-icon-btn" id="wof-back-btn" title="Back">←</button>
-                <span class="brand-logo-wof">⚔️</span>
+                <button class="bar-icon-btn" id="wof-back-btn">←</button>
+                <span class="brand-logo-wof" id="wof-title-bar">⚔️</span>
                 <span class="brand-name-wof">World Of Fights</span>
             </div>
             <div class="bar-right">
@@ -48,31 +65,33 @@
                     <span class="user-name" id="wof-username">Player</span>
                     <span class="user-rank" id="wof-rank">USER</span>
                 </span>
-                <span class="currency luna" title="Luna">💰 <span id="wof-luna">100</span></span>
-                <span class="currency lits" title="Lits">💎 <span id="wof-lits">0</span></span>
-                <span class="currency gems" title="Gems">💵 <span id="wof-gems">0</span></span>
+                <span class="currency luna">💰 <span id="wof-luna">100</span></span>
+                <span class="currency lits">💎 <span id="wof-lits">0</span></span>
+                <span class="currency gems">💵 <span id="wof-gems">0</span></span>
                 <a href="#" class="menu-link" data-wof="shop">🛒 Shop</a>
                 <a href="#" class="menu-link" data-wof="market">🌙 Market</a>
                 <a href="#" class="menu-link" data-wof="chat">💬 Chat</a>
                 <a href="#" class="menu-link disabled" data-wof="play">▶️ Play</a>
-                <a href="#" class="bar-icon-btn" id="wof-settings-btn" title="Settings">⚙️</a>
-                <a href="#" class="bar-icon-btn logout" id="wof-logout-btn" title="Logout">🚪</a>
+                <a href="#" class="bar-icon-btn" id="wof-settings-btn">⚙️</a>
+                <a href="#" class="bar-icon-btn logout" id="wof-logout-btn">🚪</a>
             </div>
         </div>
 
-        <!-- CONTENT -->
+        <!-- ============================================================
+             CONTENT AREA
+             ============================================================ -->
         <div class="content-area" id="content-area"></div>
 
-        <!-- WOF ANIMATION -->
+        <!-- ============================================================
+             WOF ANIMATION OVERLAY (doar titlul zboară)
+             ============================================================ -->
         <div class="wof-animation hidden" id="wof-animation">
-            <div class="wof-sky"></div>
-            <div class="wof-ground"><div class="wof-trees"></div></div>
-            <div class="wof-title" id="wof-title">⚔️ World Of Fights</div>
+            <div class="wof-title-flying" id="wof-title-flying">⚔️ World Of Fights</div>
         </div>
 
     </div>
 
-    <!-- MODAL PROFILE -->
+    <!-- MODALS -->
     <div class="modal hidden" id="profile-modal">
         <div class="modal-content">
             <button class="modal-close" data-close="profile-modal">×</button>
@@ -88,7 +107,6 @@
         </div>
     </div>
 
-    <!-- MODAL SETTINGS -->
     <div class="modal hidden" id="settings-modal">
         <div class="modal-content">
             <button class="modal-close" data-close="settings-modal">×</button>
@@ -101,22 +119,11 @@
                         <option value="light">Light</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Language</label>
-                    <select id="setting-language">
-                        <option value="en">English</option>
-                        <option value="ro">Română</option>
-                        <option value="de">Deutsch</option>
-                        <option value="tr">Türkçe</option>
-                        <option value="zh">中文</option>
-                    </select>
-                </div>
                 <button type="submit" class="btn-primary">SAVE</button>
             </form>
         </div>
     </div>
 
-    <!-- GLOBAL MESSAGE -->
     <div class="global-message-overlay hidden" id="global-message-overlay">
         <div class="global-message-content">
             <span class="global-message-from" id="global-message-from">Admin</span>
@@ -124,7 +131,6 @@
         </div>
     </div>
 
-    <!-- TOAST -->
     <div class="toast-container" id="toast-container"></div>
 
     <script src="WofMenu.js"></script>
