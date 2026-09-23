@@ -405,40 +405,52 @@ function renderInfoView() {
 //  WOF TRANSITION (SMOOTH)
 // ============================================================
 function startWofTransition() {
-    const animation = document.getElementById('wof-animation');
     const title = document.getElementById('wof-title-flying');
     const content = document.getElementById('content-area');
     const platformBar = document.getElementById('top-bar-platform');
     const wofBar = document.getElementById('top-bar-wof');
+    const bgLayer = document.getElementById('background-layer');
+    const wofTitleBar = document.getElementById('wof-title-bar');
+    const wofNameBar = document.getElementById('wof-name-bar');
 
-    // Verificare
-    if (!animation || !title || !platformBar || !wofBar) {
+    if (!title || !platformBar || !wofBar || !bgLayer) {
         console.error('Missing elements for transition');
         return;
     }
 
-    // PASUL 1: Ascunde platform bar (slide up)
+    // PASUL 1: Hide platform bar (slide up)
     platformBar.style.transition = 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
     platformBar.style.opacity = '0';
     platformBar.style.transform = 'translateY(-100%)';
 
-    // PASUL 2: Ascunde content
+    // PASUL 2: Fade out content
     content.style.transition = 'opacity 0.3s ease';
     content.style.opacity = '0';
 
-    // PASUL 3: Show animation overlay
-    animation.classList.remove('hidden');
-    animation.classList.add('title-visible');
-
-    // PASUL 4: După 1s → title se mută în poziția din meniu (shrink)
+    // PASUL 3: Show background layer (WOF) + title flying
     setTimeout(() => {
-        animation.classList.add('title-shrink');
-    }, 1000);
+        bgLayer.classList.remove('hidden');
+        title.classList.remove('hidden');
 
-    // PASUL 5: După 2s → WOF bar apare
+        // Title appears in center
+        requestAnimationFrame(() => {
+            title.classList.add('visible');
+        });
+    }, 400);
+
+    // PASUL 4: Title shrink (move to bar position)
     setTimeout(() => {
-        // Hide platform bar permanent
+        title.classList.add('shrink');
+    }, 1500);
+
+    // PASUL 5: Show WOF bar
+    setTimeout(() => {
+        // Hide platform bar permanently
         platformBar.classList.add('hidden');
+
+        // Make WOF title/name in bar invisible initially
+        if (wofTitleBar) wofTitleBar.style.opacity = '0';
+        if (wofNameBar) wofNameBar.style.opacity = '0';
 
         // Show WOF bar
         wofBar.classList.remove('hidden');
@@ -446,10 +458,25 @@ function startWofTransition() {
         wofBar.style.transform = 'translateY(-100%)';
 
         requestAnimationFrame(() => {
-            wofBar.style.transition = 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+            wofBar.style.transition = 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
             wofBar.style.opacity = '1';
             wofBar.style.transform = 'translateY(0)';
+
+            // Fade in title/name in bar
+            setTimeout(() => {
+                if (wofTitleBar) {
+                    wofTitleBar.style.transition = 'opacity 0.3s ease';
+                    wofTitleBar.style.opacity = '1';
+                }
+                if (wofNameBar) {
+                    wofNameBar.style.transition = 'opacity 0.3s ease';
+                    wofNameBar.style.opacity = '1';
+                }
+            }, 200);
         });
+
+        // Make content transparent (background visible)
+        content.classList.add('wof-active');
 
         // Render WOF Info
         new WofInfo().render(content);
@@ -463,26 +490,22 @@ function startWofTransition() {
         setTimeout(() => {
             content.style.opacity = '1';
         }, 100);
-    }, 2000);
+    }, 2300);
 
-    // PASUL 6: Ascunde animation overlay (după 2.7s)
+    // PASUL 6: Hide title flying (after it landed)
     setTimeout(() => {
-        animation.classList.add('hidden');
-        animation.classList.remove('title-visible', 'title-shrink');
+        title.classList.add('hidden');
+        title.classList.remove('visible', 'shrink');
 
         // Reset title styles
         title.style.transition = 'none';
-        title.style.transform = 'translate(-50%, -50%) scale(1.5)';
-        title.style.opacity = '0';
         title.style.top = '50%';
         title.style.left = '50%';
+        title.style.transform = 'translate(-50%, -50%) scale(1)';
+        title.style.opacity = '0';
         title.style.color = 'var(--accent)';
         title.style.letterSpacing = '8px';
-        title.style.fontSize = '72px';
-
-        // Reset content
-        content.style.opacity = '1';
-    }, 2700);
+    }, 2900);
 }
 
 // ============================================================
@@ -526,16 +549,28 @@ function initWofBackBtn() {
     if (!btn) return;
 
     btn.addEventListener('click', () => {
-        // Hide WOF bar
         const wofBar = document.getElementById('top-bar-wof');
+        const platformBar = document.getElementById('top-bar-platform');
+        const bgLayer = document.getElementById('background-layer');
+        const content = document.getElementById('content-area');
+
+        // Fade out content
+        content.style.opacity = '0';
+
+        // Hide WOF bar
         wofBar.style.opacity = '0';
         wofBar.style.transform = 'translateY(-100%)';
 
         setTimeout(() => {
             wofBar.classList.add('hidden');
 
+            // Hide background layer
+            bgLayer.classList.add('hidden');
+
+            // Remove wof-active class
+            content.classList.remove('wof-active');
+
             // Show platform bar
-            const platformBar = document.getElementById('top-bar-platform');
             platformBar.classList.remove('hidden');
             platformBar.style.opacity = '0';
             platformBar.style.transform = 'translateY(-100%)';
@@ -547,6 +582,7 @@ function initWofBackBtn() {
 
             // Show games view
             showPlatformView('games');
+            content.style.opacity = '1';
         }, 400);
     });
 }
