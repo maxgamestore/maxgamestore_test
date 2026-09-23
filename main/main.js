@@ -1,17 +1,26 @@
 // ============================================================
 //  WORLD OF FIGHTS - MAIN LOGIC
+//  MaxGameStore Corporation © 2026
 // ============================================================
 
+// ============================================================
+//  CONFIG
+// ============================================================
 const SERVER_URL = window.location.origin;
 const API = SERVER_URL + "/api";
 const WS_URL = SERVER_URL.replace('http://', 'ws://').replace('https://', 'wss://') + "/ws";
 const GAME_VERSION = "Beta 0.0.1";
 
+// ============================================================
+//  STATE
+// ============================================================
 let currentUser = null;
 let currentSettings = {};
 let ws = null;
 let lunaInterval = null;
 let globalMsgTimeout = null;
+let currentPlatformView = 'home';
+let currentWofView = 'info';
 
 // ============================================================
 //  INIT
@@ -20,7 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await checkSession();
     await loadUserSettings();
 
-    initMenuLinks();
+    initPlatformMenu();
     initWofMenu();
     initWofBackBtn();
     initLogout();
@@ -28,12 +37,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     initSettings();
     initWebSocket();
 
-    showView('home');
+    showPlatformView('home');
     startLunaRefresh();
 });
 
 // ============================================================
-//  SESSION
+//  SESSION CHECK
 // ============================================================
 async function checkSession() {
     const saved = localStorage.getItem('wof_session');
@@ -103,15 +112,27 @@ async function checkSession() {
 function updateUI() {
     if (!currentUser) return;
 
-    document.getElementById('main-username').textContent = currentUser.username || 'Player';
-    document.getElementById('main-rank').textContent = (currentUser.rank || 'user').toUpperCase();
-    document.getElementById('main-gems').textContent = currentUser.gems || 0;
+    // Platform bar
+    const mainUser = document.getElementById('main-username');
+    const mainRank = document.getElementById('main-rank');
+    const mainGems = document.getElementById('main-gems');
 
-    document.getElementById('wof-username').textContent = currentUser.username || 'Player';
-    document.getElementById('wof-rank').textContent = (currentUser.rank || 'user').toUpperCase();
-    document.getElementById('wof-luna').textContent = currentUser.luna || 100;
-    document.getElementById('wof-lits').textContent = currentUser.lits || 0;
-    document.getElementById('wof-gems').textContent = currentUser.gems || 0;
+    if (mainUser) mainUser.textContent = currentUser.username || 'Player';
+    if (mainRank) mainRank.textContent = (currentUser.rank || 'user').toUpperCase();
+    if (mainGems) mainGems.textContent = currentUser.gems || 0;
+
+    // WOF bar
+    const wofUser = document.getElementById('wof-username');
+    const wofRank = document.getElementById('wof-rank');
+    const wofLuna = document.getElementById('wof-luna');
+    const wofLits = document.getElementById('wof-lits');
+    const wofGems = document.getElementById('wof-gems');
+
+    if (wofUser) wofUser.textContent = currentUser.username || 'Player';
+    if (wofRank) wofRank.textContent = (currentUser.rank || 'user').toUpperCase();
+    if (wofLuna) wofLuna.textContent = currentUser.luna || 100;
+    if (wofLits) wofLits.textContent = currentUser.lits || 0;
+    if (wofGems) wofGems.textContent = currentUser.gems || 0;
 }
 
 // ============================================================
@@ -124,7 +145,8 @@ async function loadLuna() {
         const data = await res.json();
         if (data.luna !== undefined) {
             currentUser.luna = data.luna;
-            document.getElementById('wof-luna').textContent = data.luna;
+            const el = document.getElementById('wof-luna');
+            if (el) el.textContent = data.luna;
             localStorage.setItem('wof_session', JSON.stringify(currentUser));
         }
     } catch (err) {}
@@ -137,7 +159,8 @@ async function loadLits() {
         const data = await res.json();
         if (data.lits !== undefined) {
             currentUser.lits = data.lits;
-            document.getElementById('wof-lits').textContent = data.lits;
+            const el = document.getElementById('wof-lits');
+            if (el) el.textContent = data.lits;
             localStorage.setItem('wof_session', JSON.stringify(currentUser));
         }
     } catch (err) {}
@@ -153,13 +176,13 @@ function startLunaRefresh() {
 }
 
 // ============================================================
-//  MENU PLATFORM
+//  PLATFORM MENU
 // ============================================================
-function initMenuLinks() {
+function initPlatformMenu() {
     document.querySelectorAll('#top-bar-platform .menu-link').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
-            showView(link.dataset.menu);
+            showPlatformView(link.dataset.menu);
         });
     });
 
@@ -168,9 +191,11 @@ function initMenuLinks() {
 }
 
 // ============================================================
-//  SHOW VIEW
+//  SHOW PLATFORM VIEW
 // ============================================================
-function showView(view) {
+function showPlatformView(view) {
+    currentPlatformView = view;
+
     document.querySelectorAll('#top-bar-platform .menu-link').forEach(link => {
         link.classList.toggle('active', link.dataset.menu === view);
     });
@@ -193,19 +218,37 @@ function renderHomeView() {
                 <p>The ultimate gaming platform. Play multiple games, earn Gems, and compete worldwide.</p>
             </div>
             <div class="home-stats">
-                <div class="stat-card"><div class="stat-icon">🎮</div><div class="stat-value">1</div><div class="stat-label">Games</div></div>
-                <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-value" id="home-players">0</div><div class="stat-label">Players Online</div></div>
-                <div class="stat-card"><div class="stat-icon">🌍</div><div class="stat-value" id="home-accounts">0</div><div class="stat-label">Total Accounts</div></div>
-                <div class="stat-card"><div class="stat-icon">💵</div><div class="stat-value">${currentUser.gems || 0}</div><div class="stat-label">Your Gems</div></div>
+                <div class="stat-card">
+                    <div class="stat-icon">🎮</div>
+                    <div class="stat-value">1</div>
+                    <div class="stat-label">Games</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-value" id="home-players">0</div>
+                    <div class="stat-label">Players Online</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🌍</div>
+                    <div class="stat-value" id="home-accounts">0</div>
+                    <div class="stat-label">Total Accounts</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">💵</div>
+                    <div class="stat-value">${currentUser.gems || 0}</div>
+                    <div class="stat-label">Your Gems</div>
+                </div>
             </div>
             <div class="home-featured">
                 <h2>⭐ Featured Game</h2>
                 <div class="featured-game">
-                    <div class="game-banner"><span class="game-logo">⚔️</span></div>
+                    <div class="game-banner">
+                        <span class="game-logo">⚔️</span>
+                    </div>
                     <div class="game-info">
                         <h3>World Of Fights</h3>
                         <p>The ultimate 2D fighting experience. Multiplayer, custom skins, and epic battles.</p>
-                        <button class="btn-play-featured">▶ PLAY NOW</button>
+                        <button class="btn-play-featured" id="btn-featured-play">▶ PLAY NOW</button>
                     </div>
                 </div>
             </div>
@@ -213,7 +256,9 @@ function renderHomeView() {
     `;
 
     loadHomeStats();
-    content.querySelector('.btn-play-featured').addEventListener('click', startWofTransition);
+
+    const btn = document.getElementById('btn-featured-play');
+    if (btn) btn.addEventListener('click', startWofTransition);
 }
 
 async function loadHomeStats() {
@@ -247,11 +292,13 @@ function renderGamesView() {
                     <div class="game-card-info">
                         <h3>World Of Fights</h3>
                         <p>2D Multiplayer Fighting Game</p>
-                        <button class="btn-enter">▶ ENTER</button>
+                        <button class="btn-enter" id="btn-wof-enter">▶ ENTER</button>
                     </div>
                 </div>
                 <div class="game-card game-coming-soon">
-                    <div class="game-card-banner"><span class="game-card-logo">❓</span></div>
+                    <div class="game-card-banner">
+                        <span class="game-card-logo">❓</span>
+                    </div>
                     <div class="game-card-info">
                         <h3>Coming Soon</h3>
                         <p>New games in development</p>
@@ -262,11 +309,12 @@ function renderGamesView() {
         </div>
     `;
 
-    content.querySelector('.game-card[data-game="wof"] .btn-enter').addEventListener('click', startWofTransition);
+    const btn = document.getElementById('btn-wof-enter');
+    if (btn) btn.addEventListener('click', startWofTransition);
 }
 
 // ============================================================
-//  VIEW: SHOP PLATFORM
+//  VIEW: SHOP (Platform)
 // ============================================================
 function renderPlatformShopView() {
     const content = document.getElementById('content-area');
@@ -309,7 +357,7 @@ function renderPlatformShopView() {
 }
 
 // ============================================================
-//  VIEW: INFO
+//  VIEW: INFO (Platform)
 // ============================================================
 function renderInfoView() {
     const content = document.getElementById('content-area');
@@ -318,10 +366,26 @@ function renderInfoView() {
             <h1>ℹ️ About MaxGameStore</h1>
             <p>Independent game development studio creating unique multiplayer experiences.</p>
             <div class="info-grid">
-                <div class="info-card"><div class="info-icon">🏢</div><div class="info-label">Company</div><div class="info-value">MaxGameStore</div></div>
-                <div class="info-card"><div class="info-icon">📅</div><div class="info-label">Founded</div><div class="info-value">2026</div></div>
-                <div class="info-card"><div class="info-icon">🎮</div><div class="info-label">Games</div><div class="info-value">1</div></div>
-                <div class="info-card"><div class="info-icon">👥</div><div class="info-label">Players</div><div class="info-value" id="info-players">0</div></div>
+                <div class="info-card">
+                    <div class="info-icon">🏢</div>
+                    <div class="info-label">Company</div>
+                    <div class="info-value">MaxGameStore</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-icon">📅</div>
+                    <div class="info-label">Founded</div>
+                    <div class="info-value">2026</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-icon">🎮</div>
+                    <div class="info-label">Games</div>
+                    <div class="info-value">1</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-icon">👥</div>
+                    <div class="info-label">Players</div>
+                    <div class="info-value" id="info-players">0</div>
+                </div>
             </div>
             <div class="info-section">
                 <h2>📖 About Us</h2>
@@ -338,76 +402,92 @@ function renderInfoView() {
 }
 
 // ============================================================
-//  WOF TRANSITION
+//  WOF TRANSITION (SMOOTH)
 // ============================================================
 function startWofTransition() {
     const animation = document.getElementById('wof-animation');
-    const title = document.getElementById('wof-title');
+    const title = document.getElementById('wof-title-flying');
     const content = document.getElementById('content-area');
+    const platformBar = document.getElementById('top-bar-platform');
+    const wofBar = document.getElementById('top-bar-wof');
 
-    // Hide content during animation
+    // Verificare
+    if (!animation || !title || !platformBar || !wofBar) {
+        console.error('Missing elements for transition');
+        return;
+    }
+
+    // PASUL 1: Ascunde platform bar (slide up)
+    platformBar.style.transition = 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
+    platformBar.style.opacity = '0';
+    platformBar.style.transform = 'translateY(-100%)';
+
+    // PASUL 2: Ascunde content
+    content.style.transition = 'opacity 0.3s ease';
     content.style.opacity = '0';
 
+    // PASUL 3: Show animation overlay
     animation.classList.remove('hidden');
-    title.style.transform = 'translate(-50%, -50%) scale(0.5)';
-    title.style.opacity = '0';
+    animation.classList.add('title-visible');
 
-    // Step 1: Show title (fade in, small)
+    // PASUL 4: După 1s → title se mută în poziția din meniu (shrink)
     setTimeout(() => {
-        title.style.transition = 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
-        title.style.opacity = '1';
-        title.style.transform = 'translate(-50%, -50%) scale(1)';
-    }, 100);
+        animation.classList.add('title-shrink');
+    }, 1000);
 
-    // Step 2: Fade background to sky blue
+    // PASUL 5: După 2s → WOF bar apare
     setTimeout(() => {
-        animation.classList.add('sky-active');
-    }, 900);
+        // Hide platform bar permanent
+        platformBar.classList.add('hidden');
 
-    // Step 3: Ground comes up
-    setTimeout(() => {
-        animation.classList.add('ground-active');
-    }, 1500);
+        // Show WOF bar
+        wofBar.classList.remove('hidden');
+        wofBar.style.opacity = '0';
+        wofBar.style.transform = 'translateY(-100%)';
 
-    // Step 4: Title moves up + shrinks
-    setTimeout(() => {
-        title.style.transform = 'translate(-50%, -200%) scale(0.5)';
-    }, 2200);
+        requestAnimationFrame(() => {
+            wofBar.style.transition = 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+            wofBar.style.opacity = '1';
+            wofBar.style.transform = 'translateY(0)';
+        });
 
-    // Step 5: Show WOF
-    setTimeout(() => {
-        animation.classList.add('fade-out');
+        // Render WOF Info
+        new WofInfo().render(content);
 
+        // Set active tab
+        document.querySelectorAll('#top-bar-wof .menu-link').forEach(l => {
+            l.classList.toggle('active', l.dataset.wof === 'info');
+        });
+
+        // Show content again
         setTimeout(() => {
-            animation.classList.add('hidden');
-            animation.classList.remove('sky-active', 'ground-active', 'fade-out');
-            title.style.transition = 'none';
-            title.style.transform = 'translate(-50%, -50%) scale(0.5)';
-            title.style.opacity = '0';
-
-            showWofView();
             content.style.opacity = '1';
-        }, 600);
-    }, 3000);
+        }, 100);
+    }, 2000);
+
+    // PASUL 6: Ascunde animation overlay (după 2.7s)
+    setTimeout(() => {
+        animation.classList.add('hidden');
+        animation.classList.remove('title-visible', 'title-shrink');
+
+        // Reset title styles
+        title.style.transition = 'none';
+        title.style.transform = 'translate(-50%, -50%) scale(1.5)';
+        title.style.opacity = '0';
+        title.style.top = '50%';
+        title.style.left = '50%';
+        title.style.color = 'var(--accent)';
+        title.style.letterSpacing = '8px';
+        title.style.fontSize = '72px';
+
+        // Reset content
+        content.style.opacity = '1';
+    }, 2700);
 }
 
-function showWofView() {
-    document.getElementById('top-bar-platform').classList.add('hidden');
-    document.getElementById('top-bar-wof').classList.remove('hidden');
-
-    const wofMenu = new WofMenu();
-    wofMenu.render();
-
-    // Default: show Info
-    const content = document.getElementById('content-area');
-    new WofInfo().render(content);
-
-    // Set Info as active
-    document.querySelectorAll('#top-bar-wof .menu-link').forEach(l => {
-        l.classList.toggle('active', l.dataset.wof === 'info');
-    });
-}
-
+// ============================================================
+//  WOF MENU
+// ============================================================
 function initWofMenu() {
     document.querySelectorAll('#top-bar-wof .menu-link').forEach(link => {
         link.addEventListener('click', (e) => {
@@ -418,15 +498,18 @@ function initWofMenu() {
                 return;
             }
 
+            // Update active
             document.querySelectorAll('#top-bar-wof .menu-link').forEach(l => l.classList.remove('active'));
             link.classList.add('active');
 
-            showWofView2(link.dataset.wof);
+            // Switch view
+            showWofView(link.dataset.wof);
         });
     });
 }
 
-function showWofView2(view) {
+function showWofView(view) {
+    currentWofView = view;
     const content = document.getElementById('content-area');
 
     if (view === 'shop') new WofShop().render(content);
@@ -435,26 +518,54 @@ function showWofView2(view) {
     if (view === 'info') new WofInfo().render(content);
 }
 
+// ============================================================
+//  WOF BACK BUTTON
+// ============================================================
 function initWofBackBtn() {
     const btn = document.getElementById('wof-back-btn');
-    if (btn) {
-        btn.addEventListener('click', () => {
-            document.getElementById('top-bar-wof').classList.add('hidden');
-            document.getElementById('top-bar-platform').classList.remove('hidden');
-            showView('games');
-        });
-    }
+    if (!btn) return;
+
+    btn.addEventListener('click', () => {
+        // Hide WOF bar
+        const wofBar = document.getElementById('top-bar-wof');
+        wofBar.style.opacity = '0';
+        wofBar.style.transform = 'translateY(-100%)';
+
+        setTimeout(() => {
+            wofBar.classList.add('hidden');
+
+            // Show platform bar
+            const platformBar = document.getElementById('top-bar-platform');
+            platformBar.classList.remove('hidden');
+            platformBar.style.opacity = '0';
+            platformBar.style.transform = 'translateY(-100%)';
+
+            requestAnimationFrame(() => {
+                platformBar.style.opacity = '1';
+                platformBar.style.transform = 'translateY(0)';
+            });
+
+            // Show games view
+            showPlatformView('games');
+        }, 400);
+    });
 }
 
 // ============================================================
 //  LOGOUT
 // ============================================================
 function initLogout() {
-    [document.getElementById('logout-btn'), document.getElementById('wof-logout-btn')].forEach(btn => {
+    const logoutBtns = [
+        document.getElementById('logout-btn'),
+        document.getElementById('wof-logout-btn')
+    ];
+
+    logoutBtns.forEach(btn => {
         if (!btn) return;
+
         btn.addEventListener('click', async (e) => {
             e.preventDefault();
-            if (!confirm('Logout?')) return;
+            if (!confirm('Are you sure you want to logout?')) return;
 
             try {
                 await fetch(API + '/logout', {
@@ -494,13 +605,23 @@ function initProfile() {
 
 function openProfile() {
     if (!currentUser) return;
-    document.getElementById('p-username').textContent = currentUser.username || '-';
-    document.getElementById('p-rank').textContent = (currentUser.rank || 'user').toUpperCase();
-    document.getElementById('p-email').textContent = currentUser.email || '-';
-    document.getElementById('p-gems').textContent = currentUser.gems || 0;
-    document.getElementById('p-luna').textContent = currentUser.luna || 100;
-    document.getElementById('p-lits').textContent = currentUser.lits || 0;
-    document.getElementById('profile-modal').classList.remove('hidden');
+
+    const pUser = document.getElementById('p-username');
+    const pRank = document.getElementById('p-rank');
+    const pEmail = document.getElementById('p-email');
+    const pGems = document.getElementById('p-gems');
+    const pLuna = document.getElementById('p-luna');
+    const pLits = document.getElementById('p-lits');
+
+    if (pUser) pUser.textContent = currentUser.username || '-';
+    if (pRank) pRank.textContent = (currentUser.rank || 'user').toUpperCase();
+    if (pEmail) pEmail.textContent = currentUser.email || '-';
+    if (pGems) pGems.textContent = currentUser.gems || 0;
+    if (pLuna) pLuna.textContent = currentUser.luna || 100;
+    if (pLits) pLits.textContent = currentUser.lits || 0;
+
+    const modal = document.getElementById('profile-modal');
+    if (modal) modal.classList.remove('hidden');
 }
 
 // ============================================================
@@ -514,15 +635,21 @@ function initSettings() {
 
     if (!modal) return;
 
-    const open = (e) => { e.preventDefault(); modal.classList.remove('hidden'); };
-    if (btn) btn.addEventListener('click', open);
-    if (btnWof) btnWof.addEventListener('click', open);
-
-    form.addEventListener('submit', (e) => {
+    const openModal = (e) => {
         e.preventDefault();
-        showToast('Settings saved!', 'success');
-        modal.classList.add('hidden');
-    });
+        modal.classList.remove('hidden');
+    };
+
+    if (btn) btn.addEventListener('click', openModal);
+    if (btnWof) btnWof.addEventListener('click', openModal);
+
+    if (form) {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            showToast('Settings saved!', 'success');
+            modal.classList.add('hidden');
+        });
+    }
 }
 
 async function loadUserSettings() {
@@ -530,7 +657,9 @@ async function loadUserSettings() {
     try {
         const res = await fetch(API + '/user/settings/' + currentUser.username);
         currentSettings = await res.json();
-    } catch (err) { currentSettings = {}; }
+    } catch (err) {
+        currentSettings = {};
+    }
 }
 
 // ============================================================
@@ -543,7 +672,8 @@ function initWebSocket() {
         ws = new WebSocket(WS_URL);
 
         ws.onopen = () => {
-            ws.send(`AUTH:${currentUser.token}:${currentUser.username}:${currentUser.sessionId}:${GAME_VERSION}`);
+            const authMsg = `AUTH:${currentUser.token}:${currentUser.username}:${currentUser.sessionId}:${GAME_VERSION}`;
+            ws.send(authMsg);
         };
 
         ws.onmessage = (event) => {
@@ -551,29 +681,37 @@ function initWebSocket() {
 
             try {
                 const data = JSON.parse(msg);
-                if (data.type === 'GLOBAL_MESSAGE') showGlobalMessage(data.from, data.message);
+                if (data.type === 'GLOBAL_MESSAGE') {
+                    showGlobalMessage(data.from, data.message);
+                }
             } catch (e) {}
 
             if (msg.startsWith('LUNA_UPDATE:')) {
                 const luna = parseInt(msg.substring(12));
-                document.getElementById('wof-luna').textContent = luna;
                 currentUser.luna = luna;
+                const el = document.getElementById('wof-luna');
+                if (el) el.textContent = luna;
                 localStorage.setItem('wof_session', JSON.stringify(currentUser));
             } else if (msg.startsWith('LITS_UPDATE:')) {
                 const lits = parseInt(msg.substring(12));
-                document.getElementById('wof-lits').textContent = lits;
                 currentUser.lits = lits;
+                const el = document.getElementById('wof-lits');
+                if (el) el.textContent = lits;
                 localStorage.setItem('wof_session', JSON.stringify(currentUser));
             } else if (msg.startsWith('BANNED:')) {
-                alert('Banned: ' + msg.substring(7));
+                alert('You have been banned: ' + msg.substring(7));
                 localStorage.removeItem('wof_session');
                 window.location.href = '../login/login.html';
             }
         };
 
-        ws.onclose = () => setTimeout(initWebSocket, 5000);
+        ws.onclose = () => {
+            setTimeout(initWebSocket, 5000);
+        };
 
-    } catch (err) {}
+    } catch (err) {
+        console.error('WebSocket init failed:', err);
+    }
 }
 
 // ============================================================
@@ -581,12 +719,20 @@ function initWebSocket() {
 // ============================================================
 function showGlobalMessage(from, message) {
     const overlay = document.getElementById('global-message-overlay');
-    document.getElementById('global-message-from').textContent = from;
-    document.getElementById('global-message-text').textContent = message;
+    const fromEl = document.getElementById('global-message-from');
+    const textEl = document.getElementById('global-message-text');
+
+    if (!overlay) return;
+
+    if (fromEl) fromEl.textContent = from;
+    if (textEl) textEl.textContent = message;
     overlay.classList.remove('hidden');
 
     if (globalMsgTimeout) clearTimeout(globalMsgTimeout);
-    globalMsgTimeout = setTimeout(() => overlay.classList.add('hidden'), 5000);
+
+    globalMsgTimeout = setTimeout(() => {
+        overlay.classList.add('hidden');
+    }, 5000);
 }
 
 // ============================================================
@@ -594,11 +740,16 @@ function showGlobalMessage(from, message) {
 // ============================================================
 function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
+    if (!container) return;
+
     const toast = document.createElement('div');
     toast.className = 'toast ' + type;
     toast.textContent = message;
     container.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
+
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
 }
 
 // ============================================================
