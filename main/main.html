@@ -3,286 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>World Of Fights - Dashboard</title>
+    <title>MaxGameStore - Dashboard</title>
     <link rel="icon" href="../assets/favicon.png">
     <link rel="stylesheet" href="main.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 </head>
 <body>
 
-    <div class="main-container">
+    <div class="main-container" id="main-container">
 
-        <!-- ============================================================
-             UI BAR SUS
-             ============================================================ -->
-        <div class="main-bar">
-            <div class="main-bar-left">
-                <span class="user-icon">👤</span>
-                <span class="user-name" id="main-username">Player</span>
-                <span class="user-rank" id="main-rank">USER</span>
-                <span class="user-luna" title="Luna">💰 <span id="main-luna">100</span></span>
-                <span class="user-lits" title="Lits">💎 <span id="main-lits">0</span></span>
+        <!-- TOP BAR PLATFORM -->
+        <div class="top-bar" id="top-bar-platform">
+            <div class="bar-left">
+                <span class="brand-logo">🏢</span>
+                <span class="brand-name">MAXGAMESTORE</span>
+            </div>
+            <div class="bar-center">
+                <a href="#" class="menu-link active" data-menu="home">🏠 Home</a>
+                <a href="#" class="menu-link" data-menu="games">🎮 Games</a>
+                <a href="#" class="menu-link" data-menu="shop">🛒 Shop</a>
+                <a href="#" class="menu-link" data-menu="info">ℹ️ Info</a>
+            </div>
+            <div class="bar-right">
+                <span class="user-info">
+                    <span class="user-icon">👤</span>
+                    <span class="user-name" id="main-username">Player</span>
+                    <span class="user-rank" id="main-rank">USER</span>
+                </span>
                 <span class="user-gems" title="Gems">💵 <span id="main-gems">0</span></span>
-            </div>
-            <div class="main-bar-right">
-                <a href="#" class="menu-link" id="settings-btn">Settings</a>
-                <a href="#" class="menu-link" id="admin-btn" style="display:none;">Admin</a>
-                <a href="#" class="menu-link logout" id="logout-btn">Logout</a>
+                <a href="#" class="bar-icon-btn" id="settings-btn" title="Settings">⚙️</a>
+                <a href="#" class="bar-icon-btn logout" id="logout-btn" title="Logout">🚪</a>
             </div>
         </div>
 
-        <!-- ============================================================
-             BOTTOM SECTION — TABS
-             ============================================================ -->
-        <div class="bottom-section">
-
-            <!-- TABS -->
-            <div class="bottom-tabs">
-                <button class="bottom-tab active" data-tab="about">📖 About Us</button>
-                <div class="tab-divider"></div>
-                <button class="bottom-tab" data-tab="info">ℹ️ Info</button>
-                <div class="tab-divider"></div>
-                <button class="bottom-tab" data-tab="shop">💵 Shop</button>
-                <div class="tab-divider"></div>
-                <button class="bottom-tab" data-tab="market">🌙 Market</button>
-                <div class="tab-divider"></div>
-                <button class="bottom-tab" data-tab="chat">💬 Global Chat</button>
+        <!-- TOP BAR WOF -->
+        <div class="top-bar top-bar-wof hidden" id="top-bar-wof">
+            <div class="bar-left">
+                <button class="bar-icon-btn" id="wof-back-btn" title="Back">←</button>
+                <span class="brand-logo-wof">⚔️</span>
+                <span class="brand-name-wof">World Of Fights</span>
             </div>
-
-            <!-- SEPARATOR ORIZONTAL -->
-            <div class="tab-separator"></div>
-
-            <!-- CONȚINUT -->
-            <div class="bottom-content">
-
-                <!-- ============================================================
-                     TAB: ABOUT US
-                     ============================================================ -->
-                <div class="tab-content active" id="tab-about">
-                    <div class="about-section">
-                        <h3>⚔️ World Of Fights</h3>
-                        <p>Online multiplayer fighting game developed by MaxGameStore Corporation.</p>
-
-                        <h4>🎮 Features</h4>
-                        <ul>
-                            <li>Real-time PvP combat</li>
-                            <li>Multiple worlds and maps</li>
-                            <li>Shop and crafting system</li>
-                            <li>Global chat and community</li>
-                            <li>Custom ranks and permissions</li>
-                            <li>Custom skins and accessories</li>
-                            <li>Trade system with other players</li>
-                        </ul>
-
-                        <h4>👥 Team</h4>
-                        <p><strong>Owner:</strong> MaxGameStore</p>
-                        <p><strong>Developer:</strong> MaxGameStore</p>
-                        <p><strong>Version:</strong> Beta 0.0.1</p>
-
-                        <h4>📞 Contact</h4>
-                        <p>Email: maxgamestore5@gmail.com</p>
-                        <p>Discord: coming soon</p>
-
-                        <p class="copyright">© 2026 MaxGameStore Corporation. All rights reserved.</p>
-                    </div>
-                </div>
-
-                <!-- ============================================================
-                     TAB: INFO (LIVE)
-                     ============================================================ -->
-                <div class="tab-content" id="tab-info">
-                    <div class="info-section">
-                        <h3>ℹ️ Server Info</h3>
-
-                        <!-- Status Server -->
-                        <div class="info-grid">
-                            <div class="info-card">
-                                <div class="info-icon">🟢</div>
-                                <div class="info-label">Status</div>
-                                <div class="info-value" id="info-status">Loading...</div>
-                            </div>
-
-                            <div class="info-card">
-                                <div class="info-icon">👥</div>
-                                <div class="info-label">Players Online</div>
-                                <div class="info-value" id="info-players">0</div>
-                            </div>
-
-                            <div class="info-card">
-                                <div class="info-icon">🌍</div>
-                                <div class="info-label">Total Accounts</div>
-                                <div class="info-value" id="info-accounts">0</div>
-                            </div>
-
-                            <div class="info-card">
-                                <div class="info-icon">📦</div>
-                                <div class="info-label">Version</div>
-                                <div class="info-value" id="info-version">Beta 0.0.1</div>
-                            </div>
-
-                            <div class="info-card">
-                                <div class="info-icon">💬</div>
-                                <div class="info-label">Chat Messages</div>
-                                <div class="info-value" id="info-chat">0</div>
-                            </div>
-
-                            <div class="info-card">
-                                <div class="info-icon">⏰</div>
-                                <div class="info-label">Next Update</div>
-                                <div class="info-value" id="info-update">None</div>
-                            </div>
-                        </div>
-
-                        <!-- Server Details -->
-                        <h4>🖥️ Server Details</h4>
-                        <div class="info-details">
-                            <div class="detail-row">
-                                <span>Server Name:</span>
-                                <strong>World Of Fights - Beta 0.0.1</strong>
-                            </div>
-                            <div class="detail-row">
-                                <span>Region:</span>
-                                <strong>Global</strong>
-                            </div>
-                            <div class="detail-row">
-                                <span>Max Players:</span>
-                                <strong>100</strong>
-                            </div>
-                            <div class="detail-row">
-                                <span>Uptime:</span>
-                                <strong id="info-uptime">-</strong>
-                            </div>
-                        </div>
-
-                        <!-- Features List -->
-                        <h4>✨ Features</h4>
-                        <div class="features-list">
-                            <div class="feature-item">✅ Real-time PvP</div>
-                            <div class="feature-item">✅ Multiple Worlds</div>
-                            <div class="feature-item">✅ Shop System</div>
-                            <div class="feature-item">✅ Trade System</div>
-                            <div class="feature-item">✅ Global Chat</div>
-                            <div class="feature-item">✅ Custom Skins</div>
-                            <div class="feature-item">✅ Rank System</div>
-                            <div class="feature-item">✅ Friends System</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ============================================================
-                     TAB: SHOP (BANI REALI - $)
-                     ============================================================ -->
-                <div class="tab-content" id="tab-shop">
-                    <div class="shop-section">
-                        <h3>💵 Real Money Shop</h3>
-                        <p class="shop-description">Buy premium items with real money. Powered by secure payment.</p>
-
-                        <!-- Banner -->
-                        <div class="shop-banner">
-                            <div class="banner-content">
-                                <h4>🎁 SPECIAL OFFER</h4>
-                                <p>Get 50% extra Gems on your first purchase!</p>
-                                <button class="btn-shop-cta">Learn More</button>
-                            </div>
-                        </div>
-
-                        <!-- Gems Packages -->
-                        <h4>💎 Gems Packages</h4>
-                        <div class="shop-grid" id="shop-gems">
-                            <!-- Populated by JS -->
-                        </div>
-
-                        <!-- Premium Items -->
-                        <h4>⚔️ Premium Items</h4>
-                        <div class="shop-grid" id="shop-premium">
-                            <!-- Populated by JS -->
-                        </div>
-
-                        <!-- Battle Pass -->
-                        <h4>🏆 Battle Pass</h4>
-                        <div class="shop-grid" id="shop-battlepass">
-                            <!-- Populated by JS -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ============================================================
-                     TAB: MARKET (LUNA - 🌙)
-                     ============================================================ -->
-                <div class="tab-content" id="tab-market">
-                    <div class="market-section">
-                        <h3>🌙 Luna Market</h3>
-                        <p class="market-description">Buy items with Luna, the in-game currency. Earn Luna by playing!</p>
-
-                        <!-- Luna Balance -->
-                        <div class="luna-balance">
-                            <span>💰 Your Luna:</span>
-                            <strong id="market-luna">100</strong>
-                        </div>
-
-                        <!-- Filters -->
-                        <div class="market-filters">
-                            <button class="filter-btn active" data-filter="all">All</button>
-                            <button class="filter-btn" data-filter="character">Characters</button>
-                            <button class="filter-btn" data-filter="accessory">Accessories</button>
-                            <button class="filter-btn" data-filter="weapon">Weapons</button>
-                            <button class="filter-btn" data-filter="potion">Potions</button>
-                        </div>
-
-                        <!-- Market Grid -->
-                        <div class="market-grid" id="market-grid">
-                            <!-- Populated by JS -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ============================================================
-                     TAB: GLOBAL CHAT
-                     ============================================================ -->
-                <div class="tab-content" id="tab-chat">
-                    <div class="chat-container">
-
-                        <div class="chat-posts" id="chat-posts">
-                            <div class="chat-loading">
-                                <div class="spinner"></div>
-                                <p>Loading chat...</p>
-                            </div>
-                        </div>
-
-                        <div class="chat-input-section hidden" id="chat-input-section">
-                            <div class="chat-input-wrapper">
-                                <textarea id="chat-input" placeholder="Write a message..." maxlength="5000"></textarea>
-                                <div class="chat-input-toolbar">
-                                    <button class="tool-btn" id="tool-image">Image</button>
-                                    <button class="tool-btn" id="tool-link">Link</button>
-                                    <button class="tool-btn" id="tool-code">Code</button>
-                                    <button class="tool-btn" id="tool-file">File</button>
-                                    <button class="tool-btn send-btn" id="send-btn">Send</button>
-                                </div>
-                            </div>
-                            <div class="chat-attachments" id="chat-attachments"></div>
-                        </div>
-
-                        <div class="chat-no-permission hidden" id="chat-no-permission">
-                            <p>You don't have permission to post in the global chat.</p>
-                        </div>
-
-                    </div>
-                </div>
-
+            <div class="bar-right">
+                <span class="user-info">
+                    <span class="user-icon">👤</span>
+                    <span class="user-name" id="wof-username">Player</span>
+                    <span class="user-rank" id="wof-rank">USER</span>
+                </span>
+                <span class="currency luna" title="Luna">💰 <span id="wof-luna">100</span></span>
+                <span class="currency lits" title="Lits">💎 <span id="wof-lits">0</span></span>
+                <span class="currency gems" title="Gems">💵 <span id="wof-gems">0</span></span>
+                <a href="#" class="menu-link" data-wof="shop">🛒 Shop</a>
+                <a href="#" class="menu-link" data-wof="market">🌙 Market</a>
+                <a href="#" class="menu-link" data-wof="chat">💬 Chat</a>
+                <a href="#" class="menu-link disabled" data-wof="play">▶️ Play</a>
+                <a href="#" class="bar-icon-btn" id="wof-settings-btn" title="Settings">⚙️</a>
+                <a href="#" class="bar-icon-btn logout" id="wof-logout-btn" title="Logout">🚪</a>
             </div>
         </div>
 
-        <!-- FOOTER -->
-        <div class="main-footer">
-            <p>© 2026 MaxGameStore Corporation. All rights reserved. | Beta 0.0.1</p>
+        <!-- CONTENT -->
+        <div class="content-area" id="content-area"></div>
+
+        <!-- WOF ANIMATION -->
+        <div class="wof-animation hidden" id="wof-animation">
+            <div class="wof-sky"></div>
+            <div class="wof-ground"><div class="wof-trees"></div></div>
+            <div class="wof-title" id="wof-title">⚔️ World Of Fights</div>
         </div>
+
     </div>
 
-    <!-- ============================================================
-         MODAL: PROFILE
-         ============================================================ -->
+    <!-- MODAL PROFILE -->
     <div class="modal hidden" id="profile-modal">
         <div class="modal-content">
             <button class="modal-close" data-close="profile-modal">×</button>
@@ -291,80 +81,42 @@
                 <div class="profile-row"><span>Username:</span><strong id="p-username">-</strong></div>
                 <div class="profile-row"><span>Rank:</span><strong id="p-rank">-</strong></div>
                 <div class="profile-row"><span>Email:</span><strong id="p-email">-</strong></div>
+                <div class="profile-row"><span>Gems:</span><strong id="p-gems">-</strong></div>
                 <div class="profile-row"><span>Luna:</span><strong id="p-luna">-</strong></div>
                 <div class="profile-row"><span>Lits:</span><strong id="p-lits">-</strong></div>
-                <div class="profile-row"><span>Gems:</span><strong id="p-gems">-</strong></div>
             </div>
         </div>
     </div>
 
-    <!-- ============================================================
-         MODAL: SETTINGS
-         ============================================================ -->
+    <!-- MODAL SETTINGS -->
     <div class="modal hidden" id="settings-modal">
         <div class="modal-content">
             <button class="modal-close" data-close="settings-modal">×</button>
             <h2>⚙️ SETTINGS</h2>
             <form id="settings-form">
                 <div class="form-group">
-                    <label>Chat Bubble Color</label>
-                    <input type="color" id="setting-bubble-color" value="#16161e">
-                </div>
-                <div class="form-group">
                     <label>Theme</label>
                     <select id="setting-theme">
                         <option value="dark">Dark</option>
-                        <option value="darker">Darker</option>
                         <option value="light">Light</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Font Size</label>
-                    <select id="setting-font-size">
-                        <option value="small">Small</option>
-                        <option value="medium" selected>Medium</option>
-                        <option value="large">Large</option>
+                    <label>Language</label>
+                    <select id="setting-language">
+                        <option value="en">English</option>
+                        <option value="ro">Română</option>
+                        <option value="de">Deutsch</option>
+                        <option value="tr">Türkçe</option>
+                        <option value="zh">中文</option>
                     </select>
-                </div>
-                <div class="form-group">
-                    <label><input type="checkbox" id="setting-notifications" checked> Enable notifications</label>
                 </div>
                 <button type="submit" class="btn-primary">SAVE</button>
             </form>
         </div>
     </div>
 
-    <!-- ============================================================
-         MODAL: PURCHASE CONFIRM
-         ============================================================ -->
-    <div class="modal hidden" id="purchase-modal">
-        <div class="modal-content">
-            <button class="modal-close" data-close="purchase-modal">×</button>
-            <h2>💳 Confirm Purchase</h2>
-            <div class="purchase-info">
-                <div class="purchase-item">
-                    <span>Item:</span>
-                    <strong id="purchase-item-name">-</strong>
-                </div>
-                <div class="purchase-item">
-                    <span>Price:</span>
-                    <strong id="purchase-item-price">-</strong>
-                </div>
-                <div class="purchase-item">
-                    <span>Your Balance:</span>
-                    <strong id="purchase-balance">-</strong>
-                </div>
-            </div>
-            <div class="purchase-actions">
-                <button class="btn-secondary" data-close="purchase-modal">Cancel</button>
-                <button class="btn-primary" id="confirm-purchase-btn">Confirm</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ============================================================
-         GLOBAL MESSAGE OVERLAY
-         ============================================================ -->
+    <!-- GLOBAL MESSAGE -->
     <div class="global-message-overlay hidden" id="global-message-overlay">
         <div class="global-message-content">
             <span class="global-message-from" id="global-message-from">Admin</span>
@@ -372,11 +124,15 @@
         </div>
     </div>
 
-    <!-- ============================================================
-         NOTIFICATION TOAST
-         ============================================================ -->
+    <!-- TOAST -->
     <div class="toast-container" id="toast-container"></div>
 
+    <script src="WofMenu.js"></script>
+    <script src="WofChat.js"></script>
+    <script src="WofShop.js"></script>
+    <script src="WofMarket.js"></script>
+    <script src="WofInfo.js"></script>
     <script src="main.js"></script>
+
 </body>
 </html>
