@@ -400,7 +400,7 @@ function renderInfoView() {
 }
 
 // ============================================================
-//  WOF TRANSITION (SMOOTH)
+//  WOF TRANSITION (SMOOTH) + intrare în meniul WOF
 // ============================================================
 function startWofTransition() {
     const title = document.getElementById('wof-title-flying');
@@ -417,7 +417,7 @@ function startWofTransition() {
     const wofTitleBar = document.getElementById('wof-title-bar');
     const wofNameBar = document.getElementById('wof-name-bar');
 
-    // PASUL 1: Hide platform bar
+    // PASUL 1: Ascunde platform bar (slide up)
     platformBar.style.transition = 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
     platformBar.style.opacity = '0';
     platformBar.style.transform = 'translateY(-100%)';
@@ -426,7 +426,7 @@ function startWofTransition() {
     content.style.transition = 'opacity 0.3s ease';
     content.style.opacity = '0';
 
-    // PASUL 3: Show background + title
+    // PASUL 3: Arată background-ul WOF + titlul zburător
     setTimeout(() => {
         bgLayer.classList.remove('hidden');
         title.classList.remove('hidden');
@@ -435,12 +435,12 @@ function startWofTransition() {
         });
     }, 400);
 
-    // PASUL 4: Title shrink
+    // PASUL 4: Titlul se micșorează (zboară spre poziția din bară)
     setTimeout(() => {
         title.classList.add('shrink');
     }, 1500);
 
-    // PASUL 5: Show WOF bar
+    // PASUL 5: Apare bara WOF + se încarcă meniul WOF
     setTimeout(() => {
         platformBar.classList.add('hidden');
 
@@ -456,6 +456,7 @@ function startWofTransition() {
             wofBar.style.opacity = '1';
             wofBar.style.transform = 'translateY(0)';
 
+            // Fade in titlu + nume în bară
             setTimeout(() => {
                 if (wofTitleBar) {
                     wofTitleBar.style.transition = 'opacity 0.3s ease';
@@ -468,29 +469,39 @@ function startWofTransition() {
             }, 200);
         });
 
+        // Conținutul devine transparent ca să se vadă background-ul WOF
         content.classList.add('wof-active');
 
-        // WOF Info
-        if (typeof WofInfo !== 'undefined') {
-            new WofInfo().render(content);
+        // ====== AICI E FIX-UL: folosim WofMenu ======
+        if (typeof WofMenu !== 'undefined') {
+            window.wofMenuInstance = new WofMenu();
+            window.wofMenuInstance.switchView('info');
         } else {
-            content.innerHTML = '<div class="wof-page"><h1>⚔️ World Of Fights</h1></div>';
+            // Fallback dacă WofMenu lipsește
+            if (typeof WofInfo !== 'undefined') {
+                new WofInfo().render(content);
+            } else {
+                content.innerHTML = '<div class="wof-page"><h1>⚔️ World Of Fights</h1></div>';
+            }
         }
 
+        // Setează tab-ul activ pe Info
         document.querySelectorAll('#top-bar-wof .menu-link').forEach(l => {
             l.classList.toggle('active', l.dataset.wof === 'info');
         });
 
+        // Reapare conținutul
         setTimeout(() => {
             content.style.opacity = '1';
         }, 100);
     }, 2300);
 
-    // PASUL 6: Hide flying title
+    // PASUL 6: Ascunde titlul zburător după ce a ajuns în bară
     setTimeout(() => {
         title.classList.add('hidden');
         title.classList.remove('visible', 'shrink');
 
+        // Reset stiluri titlu
         title.style.transition = 'none';
         title.style.top = '50%';
         title.style.left = '50%';
@@ -500,7 +511,6 @@ function startWofTransition() {
         title.style.letterSpacing = '8px';
     }, 2900);
 }
-
 // ============================================================
 //  WOF MENU
 // ============================================================
@@ -521,21 +531,15 @@ function initWofMenu() {
         });
     });
 }
+let wofMenuInstance = null;
 
 function showWofView(view) {
     currentWofView = view;
-    const content = document.getElementById('content-area');
 
-    try {
-        if (view === 'shop' && typeof WofShop !== 'undefined') new WofShop().render(content);
-        else if (view === 'market' && typeof WofMarket !== 'undefined') new WofMarket().render(content);
-        else if (view === 'chat' && typeof WofChat !== 'undefined') new WofChat().render(content);
-        else if (view === 'info' && typeof WofInfo !== 'undefined') new WofInfo().render(content);
-        else content.innerHTML = '<div class="wof-page"><h1>Coming soon</h1></div>';
-    } catch (err) {
-        console.error('WOF view error:', err);
-        content.innerHTML = '<div class="wof-page"><h1>Error loading view</h1></div>';
+    if (!wofMenuInstance) {
+        wofMenuInstance = new WofMenu();
     }
+    wofMenuInstance.switchView(view);
 }
 
 // ============================================================
