@@ -3,17 +3,11 @@
 //  MaxGameStore Corporation © 2026
 // ============================================================
 
-// ============================================================
-//  CONFIG
-// ============================================================
 const SERVER_URL = window.location.origin;
 const API = SERVER_URL + "/api";
 const WS_URL = SERVER_URL.replace('http://', 'ws://').replace('https://', 'wss://') + "/ws";
 const GAME_VERSION = "Beta 0.0.1";
 
-// ============================================================
-//  STATE
-// ============================================================
 let currentUser = null;
 let currentSettings = {};
 let ws = null;
@@ -21,6 +15,7 @@ let lunaInterval = null;
 let globalMsgTimeout = null;
 let currentPlatformView = 'home';
 let currentWofView = 'info';
+let wofMenuInstance = null;
 
 // ============================================================
 //  INIT
@@ -42,7 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ============================================================
-//  SESSION CHECK
+//  SESSION
 // ============================================================
 async function checkSession() {
     const saved = localStorage.getItem('wof_session');
@@ -188,9 +183,6 @@ function initPlatformMenu() {
     if (nameEl) nameEl.addEventListener('click', openProfile);
 }
 
-// ============================================================
-//  SHOW PLATFORM VIEW
-// ============================================================
 function showPlatformView(view) {
     currentPlatformView = view;
 
@@ -205,7 +197,7 @@ function showPlatformView(view) {
 }
 
 // ============================================================
-//  VIEW: HOME
+//  HOME
 // ============================================================
 function renderHomeView() {
     const content = document.getElementById('content-area');
@@ -240,9 +232,7 @@ function renderHomeView() {
             <div class="home-featured">
                 <h2>⭐ Featured Game</h2>
                 <div class="featured-game">
-                    <div class="game-banner">
-                        <span class="game-logo">⚔️</span>
-                    </div>
+                    <div class="game-banner"><span class="game-logo">⚔️</span></div>
                     <div class="game-info">
                         <h3>World Of Fights</h3>
                         <p>The ultimate 2D fighting experience. Multiplayer, custom skins, and epic battles.</p>
@@ -254,7 +244,6 @@ function renderHomeView() {
     `;
 
     loadHomeStats();
-
     const btn = document.getElementById('btn-featured-play');
     if (btn) btn.addEventListener('click', startWofTransition);
 }
@@ -271,7 +260,7 @@ async function loadHomeStats() {
 }
 
 // ============================================================
-//  VIEW: GAMES
+//  GAMES
 // ============================================================
 function renderGamesView() {
     const content = document.getElementById('content-area');
@@ -294,9 +283,7 @@ function renderGamesView() {
                     </div>
                 </div>
                 <div class="game-card game-coming-soon">
-                    <div class="game-card-banner">
-                        <span class="game-card-logo">❓</span>
-                    </div>
+                    <div class="game-card-banner"><span class="game-card-logo">❓</span></div>
                     <div class="game-card-info">
                         <h3>Coming Soon</h3>
                         <p>New games in development</p>
@@ -312,7 +299,7 @@ function renderGamesView() {
 }
 
 // ============================================================
-//  VIEW: SHOP (Platform)
+//  SHOP PLATFORM
 // ============================================================
 function renderPlatformShopView() {
     const content = document.getElementById('content-area');
@@ -355,7 +342,7 @@ function renderPlatformShopView() {
 }
 
 // ============================================================
-//  VIEW: INFO (Platform)
+//  INFO PLATFORM
 // ============================================================
 function renderInfoView() {
     const content = document.getElementById('content-area');
@@ -364,43 +351,26 @@ function renderInfoView() {
             <h1>ℹ️ About MaxGameStore</h1>
             <p>Independent game development studio creating unique multiplayer experiences.</p>
             <div class="info-grid">
-                <div class="info-card">
-                    <div class="info-icon">🏢</div>
-                    <div class="info-label">Company</div>
-                    <div class="info-value">MaxGameStore</div>
-                </div>
-                <div class="info-card">
-                    <div class="info-icon">📅</div>
-                    <div class="info-label">Founded</div>
-                    <div class="info-value">2026</div>
-                </div>
-                <div class="info-card">
-                    <div class="info-icon">🎮</div>
-                    <div class="info-label">Games</div>
-                    <div class="info-value">1</div>
-                </div>
-                <div class="info-card">
-                    <div class="info-icon">👥</div>
-                    <div class="info-label">Players</div>
-                    <div class="info-value" id="info-players">0</div>
-                </div>
+                <div class="info-card"><div class="info-icon">🏢</div><div class="info-label">Company</div><div class="info-value">MaxGameStore</div></div>
+                <div class="info-card"><div class="info-icon">📅</div><div class="info-label">Founded</div><div class="info-value">2026</div></div>
+                <div class="info-card"><div class="info-icon">🎮</div><div class="info-label">Games</div><div class="info-value">1</div></div>
+                <div class="info-card"><div class="info-icon">👥</div><div class="info-label">Players</div><div class="info-value" id="info-players">0</div></div>
             </div>
             <div class="info-section">
                 <h2>📖 About Us</h2>
-                <p>MaxGameStore Corporation is an independent game development studio founded in 2026. We create unique multiplayer gaming experiences for players worldwide.</p>
-                <p>Our first game, <strong>World Of Fights</strong>, is a 2D multiplayer fighting game with custom skins, real-time combat, and a vibrant community.</p>
+                <p>MaxGameStore Corporation is an independent game development studio founded in 2026.</p>
+                <p>Our first game, <strong>World Of Fights</strong>, is a 2D multiplayer fighting game.</p>
             </div>
             <div class="info-section">
                 <h2>📞 Contact</h2>
                 <p><strong>Email:</strong> maxgamestore5@gmail.com</p>
-                <p><strong>Discord:</strong> Coming soon</p>
             </div>
         </div>
     `;
 }
 
 // ============================================================
-//  WOF TRANSITION (SMOOTH) + intrare în meniul WOF
+//  WOF TRANSITION
 // ============================================================
 function startWofTransition() {
     const title = document.getElementById('wof-title-flying');
@@ -410,37 +380,33 @@ function startWofTransition() {
     const bgLayer = document.getElementById('background-layer');
 
     if (!title || !platformBar || !wofBar || !bgLayer) {
-        console.error('Missing elements for transition');
+        console.error('Missing elements for transition:', {
+            title: !!title,
+            platformBar: !!platformBar,
+            wofBar: !!wofBar,
+            bgLayer: !!bgLayer
+        });
         return;
     }
 
     const wofTitleBar = document.getElementById('wof-title-bar');
     const wofNameBar = document.getElementById('wof-name-bar');
 
-    // PASUL 1: Ascunde platform bar (slide up)
     platformBar.style.transition = 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
     platformBar.style.opacity = '0';
     platformBar.style.transform = 'translateY(-100%)';
 
-    // PASUL 2: Fade out content
     content.style.transition = 'opacity 0.3s ease';
     content.style.opacity = '0';
 
-    // PASUL 3: Arată background-ul WOF + titlul zburător
     setTimeout(() => {
         bgLayer.classList.remove('hidden');
         title.classList.remove('hidden');
-        requestAnimationFrame(() => {
-            title.classList.add('visible');
-        });
+        requestAnimationFrame(() => title.classList.add('visible'));
     }, 400);
 
-    // PASUL 4: Titlul se micșorează (zboară spre poziția din bară)
-    setTimeout(() => {
-        title.classList.add('shrink');
-    }, 1500);
+    setTimeout(() => title.classList.add('shrink'), 1500);
 
-    // PASUL 5: Apare bara WOF + se încarcă meniul WOF
     setTimeout(() => {
         platformBar.classList.add('hidden');
 
@@ -456,7 +422,6 @@ function startWofTransition() {
             wofBar.style.opacity = '1';
             wofBar.style.transform = 'translateY(0)';
 
-            // Fade in titlu + nume în bară
             setTimeout(() => {
                 if (wofTitleBar) {
                     wofTitleBar.style.transition = 'opacity 0.3s ease';
@@ -469,39 +434,28 @@ function startWofTransition() {
             }, 200);
         });
 
-        // Conținutul devine transparent ca să se vadă background-ul WOF
         content.classList.add('wof-active');
 
-        // ====== AICI E FIX-UL: folosim WofMenu ======
+        // Randează meniul WOF
         if (typeof WofMenu !== 'undefined') {
-            window.wofMenuInstance = new WofMenu();
-            window.wofMenuInstance.switchView('info');
+            wofMenuInstance = new WofMenu();
+            wofMenuInstance.switchView('info');
+        } else if (typeof WofInfo !== 'undefined') {
+            new WofInfo().render(content);
         } else {
-            // Fallback dacă WofMenu lipsește
-            if (typeof WofInfo !== 'undefined') {
-                new WofInfo().render(content);
-            } else {
-                content.innerHTML = '<div class="wof-page"><h1>⚔️ World Of Fights</h1></div>';
-            }
+            content.innerHTML = '<div class="wof-page"><h1>⚠️ WofMenu.js lipsește</h1></div>';
         }
 
-        // Setează tab-ul activ pe Info
         document.querySelectorAll('#top-bar-wof .menu-link').forEach(l => {
             l.classList.toggle('active', l.dataset.wof === 'info');
         });
 
-        // Reapare conținutul
-        setTimeout(() => {
-            content.style.opacity = '1';
-        }, 100);
+        setTimeout(() => content.style.opacity = '1', 100);
     }, 2300);
 
-    // PASUL 6: Ascunde titlul zburător după ce a ajuns în bară
     setTimeout(() => {
         title.classList.add('hidden');
         title.classList.remove('visible', 'shrink');
-
-        // Reset stiluri titlu
         title.style.transition = 'none';
         title.style.top = '50%';
         title.style.left = '50%';
@@ -511,6 +465,7 @@ function startWofTransition() {
         title.style.letterSpacing = '8px';
     }, 2900);
 }
+
 // ============================================================
 //  WOF MENU
 // ============================================================
@@ -531,7 +486,6 @@ function initWofMenu() {
         });
     });
 }
-let wofMenuInstance = null;
 
 function showWofView(view) {
     currentWofView = view;
@@ -709,7 +663,6 @@ function initWebSocket() {
         };
 
         ws.onclose = () => setTimeout(initWebSocket, 5000);
-
     } catch (err) {}
 }
 
@@ -719,11 +672,9 @@ function initWebSocket() {
 function showGlobalMessage(from, message) {
     const overlay = document.getElementById('global-message-overlay');
     if (!overlay) return;
-
     document.getElementById('global-message-from').textContent = from;
     document.getElementById('global-message-text').textContent = message;
     overlay.classList.remove('hidden');
-
     if (globalMsgTimeout) clearTimeout(globalMsgTimeout);
     globalMsgTimeout = setTimeout(() => overlay.classList.add('hidden'), 5000);
 }
@@ -734,7 +685,6 @@ function showGlobalMessage(from, message) {
 function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
     if (!container) return;
-
     const toast = document.createElement('div');
     toast.className = 'toast ' + type;
     toast.textContent = message;
