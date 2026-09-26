@@ -292,7 +292,6 @@ html, body {
     transition: background 0.5s ease, opacity 0.3s ease;
 }
 
-/* Când e WOF activ → transparent ca să se vadă background-ul */
 .content-area.wof-active {
     background: transparent;
 }
@@ -326,13 +325,11 @@ html, body {
     transition: all 0.9s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Stare 1: apare în centru */
 .wof-title-flying.visible {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
 }
 
-/* Stare 2: se mută în poziția din bară (sus-stânga) */
 .wof-title-flying.shrink {
     top: 30px;
     left: 95px;
@@ -691,6 +688,7 @@ html, body {
 }
 
 .wof-page h1 { color: var(--sky-blue); text-shadow: 0 0 30px rgba(135, 206, 235, 0.5); }
+
 .wof-version {
     display: inline-block;
     padding: 6px 14px;
